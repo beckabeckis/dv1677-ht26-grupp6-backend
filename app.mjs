@@ -35,6 +35,11 @@ app.post('/resources', async (req, res) => {
     return res.redirect('/');
 });
 
+app.put('/resources/edit/:id', async (req, res) => {
+    await resources.editOne(req.body);
+    return res.redirect('/');
+});
+
 app.get('/resources/:id', async (req, res) => {
     const resource = await resources.getOne(req.params.id);
     const resourceBookings = await bookings.getByResource(req.params.id);

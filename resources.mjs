@@ -13,6 +13,12 @@ const resources = {
         ).run(body.name, body.type, body.description, body.capacity || 1);
         return { lastID: result.lastInsertRowid };
     },
+    editOne: async function editOne(body) {
+        const result = db.prepare(
+            'UPDATE resources SET name = ?, type = ?, description = ?, capacity = ? WHERE id = ?'
+        ).run(body.name, body.type, body.description, body.capacity, body.resource_id || 1);
+        return { lastID: result.lastInsertRowid };
+    },
     deleteOne: async function deleteOne(id) {
         const result = db.prepare('DELETE FROM resources WHERE id = ?').run(id);
         return { changes: result.changes };
