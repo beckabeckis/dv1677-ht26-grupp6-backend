@@ -1,0 +1,35 @@
+# MongoDB API - CURL Test Commands
+# 'handy' att copy/paste in i terminalen
+
+# roten
+curl http://localhost:3000/
+
+# skapa ny resource sidan
+curl http://localhost:3000/resources/new
+
+# skapa ny resource POST
+curl -X POST http://localhost:3000/resources -H "Content-Type: application/json" -d '{"name":"Test","type":"Testtype","description":"Testing test","capacity":1}'
+
+# specifik resource (t ex 6aaeb65afd9f49f272ab4803)
+curl http://localhost:3000/resources/6aaeb65afd9f49f272ab4803
+
+# PUT edit existerande resource
+curl -X PUT http://localhost:3000/resources/edit/6ab00d5466b2c220c581d030 \
+  -H "Content-Type: application/json" -d '{"id":"6ab00d5466b2c220c581d030","name":"Test Changed","type":"Testtype","description":"Testing test","capacity":1}'
+
+# Get edit resource form
+curl http://localhost:3000//resources/:6aaeb65afd9f49f272ab4806/edit
+
+# DELETE resource
+curl -X DELETE http://localhost:3000/resources/6aafec510feee12ee9930184
+
+
+# skapa ny booking POST
+curl -X POST http://localhost:3000/bookings -H "Content-Type: application/json" -d '{"resource_id":"6ab1152609d9cb80ed35ae46","user":"test@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 19:00","status":"confirmed"}'
+
+# PUT edit existerande booking
+curl -X PUT http://localhost:3000/bookings/edit/6ab1153c09d9cb80ed35ae47 \
+  -H "Content-Type: application/json" -d '{"id":"6ab1153c09d9cb80ed35ae47","resource_id":"6ab1152609d9cb80ed35ae46","user":"testing@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 19:00","status":"confirmed"}'
+
+# DELETE booking
+curl -X DELETE http://localhost:3000/bookings/6ab1153c09d9cb80ed35ae47

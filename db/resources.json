@@ -1,0 +1,20 @@
+[
+    {
+        "name" : "VM-01",
+        "type" : "vm",
+        "description": "Ubuntu 24.04 – 4 vCPU, 8 GB RAM",
+        "capacity": 1
+    },
+    {
+        "name" : "VM-02",
+        "type" : "vm",
+        "description": "Debian 12 – 2 vCPU, 4 GB RAM",
+        "capacity": 1
+    },
+    {
+        "name" : "GPU-server-1",
+        "type" : "gpu",
+        "description": "NVIDIA T4 – för ML-arbetsbelastningar",
+        "capacity": 1
+    }
+]

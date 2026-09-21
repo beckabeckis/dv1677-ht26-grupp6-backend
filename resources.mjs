@@ -1,4 +1,4 @@
-import { db } from "../database.js";
+import { db } from "./db/database.mjs";
 import { ObjectId } from "mongodb";
 
 const resources = {
@@ -32,7 +32,7 @@ const resources = {
     editOne: async function editOne(body) {
         const { name, type, description, capacity, id } = body;
 
-        const result = db.resources.updateOne({ _id: new ObjectId(id)}, {
+        const result = db.collection("resources").updateOne({ _id: new ObjectId(id)}, {
             $set: {name: name, 
             type: type, 
             description: description, 
@@ -47,7 +47,7 @@ const resources = {
         // return { lastID: result.lastInsertRowid };
     },
     deleteOne: async function deleteOne(id) {
-        return db.resources.deleteOne({ _id: new ObjectId(id) });
+        return db.collection("resources").deleteOne({ _id: new ObjectId(id) });
         // const result = db.prepare('DELETE FROM resources WHERE id = ?').run(id);
         // return { changes: result.changes };
     }

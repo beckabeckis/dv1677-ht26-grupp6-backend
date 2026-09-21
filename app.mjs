@@ -6,7 +6,7 @@ import cors from 'cors';
 import resources from "./resources.mjs";
 import bookings from "./bookings.mjs";
 
-import { connectToDatabase } from "./database.js";
+import { connectToDatabase } from "./db/database.mjs";
 
 
 const port = process.env.PORT;
@@ -82,6 +82,6 @@ app.delete('/bookings/:id', async (req, res) => {
     return res.json(result);
 });
 
-app.listen(port, () => {
-    console.log(`Proxmox Booking app listening on port ${port}`);
-});
+// app.listen(port, () => {
+//     console.log(`Proxmox Booking app listening on port ${port}`);
+// });
