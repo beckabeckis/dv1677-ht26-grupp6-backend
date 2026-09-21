@@ -1,0 +1,16 @@
+[
+  {
+    "resource": "VM-01",
+    "user": "anna@student.bth.se",
+    "start_time": "2026-09-21T10:00",
+    "end_time": "2026-09-21T12:00",
+    "status": "confirmed"
+  },
+  {
+    "resource": "VM-02",
+    "user": "erik@student.bth.se",
+    "start_time": "2026-09-22T13:00",
+    "end_time": "2026-09-22T15:00",
+    "status": "confirmed"
+  }
+]

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import resources from "./resources.mjs";
 import bookings from "./bookings.mjs";
+import routes from './routes.mjs';
 
 const port = process.env.PORT;
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.static(path.join(process.cwd(), "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use('/api', routes);
 
 if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined'));
@@ -36,7 +38,7 @@ app.post('/resources', async (req, res) => {
 });
 
 app.put('/resources/edit/:id', async (req, res) => {
-    await resources.editOne(req.body);
+    await resources.editOne(req.params.id, req.body);
     return res.redirect('/');
 });
 
