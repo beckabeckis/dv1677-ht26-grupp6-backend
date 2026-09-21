@@ -1,6 +1,49 @@
 # MongoDB API - CURL Test Commands
-# 'handy' att copy/paste in i terminalen
+# 'handy' to copy/paste in the terminal, don't forgett to change the id!
 
+
+# RESOURCES
+
+# GET all resources
+curl http://localhost:3000/api/resources/
+
+# GET one resource
+curl http://localhost:3000/api/resources/6ab1225a9bbb26f2f62b21d3
+
+# POST new resource
+curl -X POST http://localhost:3000/api/resources -H "Content-Type: application/json" -d '{"name":"Test","type":"Testtype","description":"Testing test","capacity":1}'
+
+# PUT edit recource
+curl -X PUT http://localhost:3000/api/resources/6ab1364f6ac593bc45c50e4b \
+  -H "Content-Type: application/json" -d '{"id":"6ab1364f6ac593bc45c50e4b","name":"Test Changed","type":"Testtype","description":"Testing test","capacity":1}'
+
+# DELETE recource
+curl -X DELETE http://localhost:3000/api/resources/6ab1364f6ac593bc45c50e4b
+
+
+# BOOKINGS
+
+# GET all bookings
+curl http://localhost:3000/api/bookings/
+
+# GET one booking
+curl http://localhost:3000/api/bookings/6ab13648dd7013fc09a2dbf2
+
+# POST new booking
+curl -X POST http://localhost:3000/api/bookings -H "Content-Type: application/json" -d '{"resource_id":"6ab1369f6ac593bc45c50e4c","user":"test@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 19:00","status":"confirmed"}'
+
+# PUT edit booking
+curl -X PUT http://localhost:3000/api/bookings/6ab1379c6ac593bc45c50e4e \
+  -H "Content-Type: application/json" -d '{"id":"6ab1379c6ac593bc45c50e4e","resource_id":"6ab1369f6ac593bc45c50e4c","user":"test@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 20:00","status":"confirmed"}'
+
+# DELETE booking
+curl -X DELETE http://localhost:3000/api/bookings/6ab1379c6ac593bc45c50e4e
+
+
+
+
+
+///Old
 # roten
 curl http://localhost:3000/
 
@@ -14,8 +57,8 @@ curl -X POST http://localhost:3000/resources -H "Content-Type: application/json"
 curl http://localhost:3000/resources/6aaeb65afd9f49f272ab4803
 
 # PUT edit existerande resource
-curl -X PUT http://localhost:3000/resources/edit/6ab00d5466b2c220c581d030 \
-  -H "Content-Type: application/json" -d '{"id":"6ab00d5466b2c220c581d030","name":"Test Changed","type":"Testtype","description":"Testing test","capacity":1}'
+curl -X PUT http://localhost:3000/resources/edit/6ab12326084daa25816eb65f \
+  -H "Content-Type: application/json" -d '{"id":"6ab12326084daa25816eb65f","name":"Test Changed","type":"Testtype","description":"Testing test","capacity":1}'
 
 # Get edit resource form
 curl http://localhost:3000//resources/:6aaeb65afd9f49f272ab4806/edit
@@ -25,11 +68,11 @@ curl -X DELETE http://localhost:3000/resources/6aafec510feee12ee9930184
 
 
 # skapa ny booking POST
-curl -X POST http://localhost:3000/bookings -H "Content-Type: application/json" -d '{"resource_id":"6ab1152609d9cb80ed35ae46","user":"test@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 19:00","status":"confirmed"}'
+curl -X POST http://localhost:3000/bookings -H "Content-Type: application/json" -d '{"resource_id":"6ab12326084daa25816eb65f","user":"test@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 19:00","status":"confirmed"}'
 
 # PUT edit existerande booking
-curl -X PUT http://localhost:3000/bookings/edit/6ab1153c09d9cb80ed35ae47 \
-  -H "Content-Type: application/json" -d '{"id":"6ab1153c09d9cb80ed35ae47","resource_id":"6ab1152609d9cb80ed35ae46","user":"testing@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 19:00","status":"confirmed"}'
+curl -X PUT http://localhost:3000/bookings/6ab1235b084daa25816eb660 \
+  -H "Content-Type: application/json" -d '{"id":"6ab1235b084daa25816eb660","resource_id":"6ab12326084daa25816eb65f","user":"test@student.bth.se","start_time":"2026-09-16 12:00","end_time":"2026-09-16 20:00","status":"confirmed"}'
 
 # DELETE booking
 curl -X DELETE http://localhost:3000/bookings/6ab1153c09d9cb80ed35ae47
