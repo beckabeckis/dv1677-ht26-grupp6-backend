@@ -3,8 +3,12 @@ import express from 'express';
 import path from 'path';
 import morgan from 'morgan';
 import cors from 'cors';
-import resources from "./resources.mjs";
-import bookings from "./bookings.mjs";
+// import resources from "./resources.mjs";
+// import bookings from "./bookings.mjs";
+import routes from './routes.mjs';
+
+import { connectToDatabase } from "./db/database.mjs";
+
 
 const port = process.env.PORT;
 const app = express();
@@ -16,60 +20,89 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
+connectToDatabase().then(() => {
+    app.listen(port, () => console.log(`API listening on port ${port}`));
+});
+
 if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined'));
 }
 
+app.use('/api', routes);
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Booking Resources API' });
+});
+
 // --- Resurser ---
 
-app.get('/', async (req, res) => {
-    return res.render("index", { resources: await resources.getAll() });
-});
+// app.get('/', async (req, res) => {
+//     return res.render("index", { resources: await resources.getAll() });
+// });
 
-app.get('/resources/new', async (req, res) => {
-    return res.render("resource-form", { resource: {} });
-});
 
-app.post('/resources', async (req, res) => {
-    await resources.addOne(req.body);
-    return res.redirect('/');
-});
+// app.get('/resources', async (req, res) => {
+//   try {
+//     // const db = await connectDB();
+//     const courses = await db.collection("resources").find({}).toArray();
+//     console.log("GET ok");
 
-app.put('/resources/edit/:id', async (req, res) => {
-    await resources.editOne(req.body);
-    return res.redirect('/');
-});
+//     res.json(courses);
+//   }
+//   catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
-app.get('/resources/:id', async (req, res) => {
-    const resource = await resources.getOne(req.params.id);
-    const resourceBookings = await bookings.getByResource(req.params.id);
+// app.get('/resources/new', async (req, res) => {
+//     return res.render("resource-form", { resource: {} });
+// });
 
-    return res.render("resource", { resource, bookings: resourceBookings });
-});
+// app.post('/resources', async (req, res) => {
+//     await resources.addOne(req.body);
+//     return res.redirect('/');
+// });
 
-app.get('/resources/:id/edit', async (req, res) => {
-    return res.render("resource-form", {
-        resource: await resources.getOne(req.params.id)
-    });
-});
+// app.put('/resources/edit/:id', async (req, res) => {
+//     await resources.editOne(req.body);
+//     return res.redirect('/');
+// });
 
-app.delete('/resources/:id', async (req, res) => {
-    const result = await resources.deleteOne(req.params.id);
-    return res.json(result);
-});
+// app.get('/resources/:id', async (req, res) => {
+//     const resource = await resources.getOne(req.params.id);
+//     const resourceBookings = await bookings.getByResource(req.params.id);
 
-// --- Bokningar ---
+//     return res.render("resource", { resource, bookings: resourceBookings });
+// });
 
-app.post('/bookings', async (req, res) => {
-    await bookings.addOne(req.body);
-    return res.redirect(`/resources/${req.body.resource_id}`);
-});
+// app.get('/resources/:id/edit', async (req, res) => {
+//     return res.render("resource-form", {
+//         resource: await resources.getOne(req.params.id)
+//     });
+// });
 
-app.delete('/bookings/:id', async (req, res) => {
-    const result = await bookings.deleteOne(req.params.id);
-    return res.json(result);
-});
+// app.delete('/resources/:id', async (req, res) => {
+//     const result = await resources.deleteOne(req.params.id);
+//     return res.json(result);
+// });
 
-app.listen(port, () => {
-    console.log(`Proxmox Booking app listening on port ${port}`);
-});
+// // --- Bokningar ---
+
+// app.post('/bookings', async (req, res) => {
+//     await bookings.addOne(req.body);
+//     return res.redirect(`/resources/${req.body.resource_id}`);
+// });
+
+// app.put('/bookings/edit/:id', async (req, res) => {
+//     await resources.editOne(req.body);
+//     return res.redirect('/');
+// });
+
+// app.delete('/bookings/:id', async (req, res) => {
+//     const result = await bookings.deleteOne(req.params.id);
+//     return res.json(result);
+// });
+
+// app.listen(port, () => {
+//     console.log(`Proxmox Booking app listening on port ${port}`);
+// });

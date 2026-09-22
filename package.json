@@ -6,7 +6,8 @@
   "main": "app.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.mjs"
+    "start": "node app.mjs",
+    "seed": "node db/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -15,11 +16,11 @@
     "node": ">=22.23"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
+    "mongodb": "^7.6.0",
     "morgan": "^1.10.0"
   }
 }
