@@ -7,7 +7,7 @@ services:
     environment:
       # MONGODB_URI sätts via .env-fil på VPS (injiceras av deploy.yml från GitHub Secret)
       # Fallback: mongodb://mongodb:27017 (Docker-container, används om secret saknas)
-      - MONGODB_URI=mongodb:-mongodb://mongodb:27017
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - DATABASE_NAME=resourcebooking
     depends_on:
       - mongodb
