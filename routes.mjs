@@ -129,6 +129,23 @@ router.get('/bookings', async (req, res) => {
     }
 });
 
+// GET all bookings of a resource
+router.get('/bookings/resource/:id', async (req, res) => {
+    try {        
+        const bookings = await db.collection(BOOKINGS_COLLECTION)
+            .find({ resource_id: new ObjectId(resourceId) })
+            .sort({ start_time: 1 })
+            .toArray();
+
+        console.log("GET bookings ok");
+
+        res.json(bookings);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET one booking
 router.get('/bookings/:id', async (req, res) => {
     try {
