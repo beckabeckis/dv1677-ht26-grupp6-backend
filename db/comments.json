@@ -1,0 +1,8 @@
+[
+    {
+        "resource" : "VM-02",
+        "booked_by" : "erik@student.bth.se",
+        "text": "Need help",
+        "created_at": "2026-09-15 12:00"
+    }
+]

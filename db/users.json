@@ -1,0 +1,14 @@
+[
+    {
+        "email" : "anna@student.bth.se",
+        "password_hash": "-",
+        "role" : "admin",
+        "created_at": "2026-08-17 12:00"
+    },
+    {
+        "email" : "erik@student.bth.se",
+        "password_hash": "-",
+        "role" : "student",
+        "created_at": "2026-09-08 17:00"
+    }
+]

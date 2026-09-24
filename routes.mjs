@@ -133,7 +133,7 @@ router.get('/bookings', async (req, res) => {
 router.get('/bookings/resource/:id', async (req, res) => {
     try {        
         const bookings = await db.collection(BOOKINGS_COLLECTION)
-            .find({ resource_id: new ObjectId(resourceId) })
+            .find({ resource_id: new ObjectId(req.params.id) })
             .sort({ start_time: 1 })
             .toArray();
 
@@ -172,7 +172,7 @@ router.post('/bookings', async (req, res) => {
     try {
         const booking = {
             resource_id: new ObjectId(req.body.resource_id),
-            user: req.body.user,
+            booked_by: new ObjectId(req.body.booked_by),
             start_time: req.body.start_time,
             end_time: req.body.end_time,
             status: req.body.status || 'confirmed'
@@ -196,7 +196,7 @@ router.put('/bookings/:id', async (req, res) => {
     try {
         const booking = {
             resource_id: new ObjectId(req.body.resource_id),
-            user: req.body.user,
+            booked_by: new ObjectId(req.body.booked_By),
             start_time: req.body.start_time,
             end_time: req.body.end_time,
             status: req.body.status
@@ -231,6 +231,260 @@ router.delete('/bookings/:id', async (req, res) => {
         if (result.deletedCount === 0) {
             return res.status(404).json({
                 error: 'booking not found'
+            });
+        }
+
+        res.json({ message: 'DELETE ok' });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+// ========================================
+// USERS
+// ========================================
+
+const USERS_COLLECTION = "users";
+
+// GET all users
+router.get('/users', async (req, res) => {
+    try {
+        const users = await db.collection(USERS_COLLECTION)
+            .find({})
+            .toArray();
+
+        console.log("GET users ok");
+
+        res.json(users);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET one user
+router.get('/users/:id', async (req, res) => {
+    try {
+        const user = await db.collection(USERS_COLLECTION)
+            .findOne({ _id: new ObjectId(req.params.id) });
+
+        if (!user) {
+            return res.status(404).json({
+                error: 'user could not be found'
+            });
+        }
+
+        console.info(`GET /api/users/:id -> ${req.params.id} ok`);
+
+        res.json(user);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST user
+router.post('/users', async (req, res) => {
+    try {
+        const result = await db.collection(USERS_COLLECTION)
+            .insertOne(req.body);
+
+        res.status(201).json({
+            _id: result.insertedId,
+            ...req.body
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT user
+router.put('/users/:id', async (req, res) => {
+    try {
+        const result = await db.collection(USERS_COLLECTION)
+            .updateOne(
+                { _id: new ObjectId(req.params.id) },
+                { $set: req.body }
+            );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                error: 'user not found',
+                id: req.params.id
+            });
+        }
+
+        res.json({ message: 'PUT ok' });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DELETE user
+router.delete('/users/:id', async (req, res) => {
+    try {
+        const result = await db.collection(USERS_COLLECTION)
+            .deleteOne({ _id: new ObjectId(req.params.id) });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({
+                error: 'user not found'
+            });
+        }
+
+        res.json({ message: 'DELETE ok' });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+// ========================================
+// COMMENTS
+// ========================================
+
+const COMMENTS_COLLECTION = "comments";
+
+// GET all comments
+router.get('/comments', async (req, res) => {
+    try {
+        const comments = await db.collection(COMMENTS_COLLECTION)
+            .find({})
+            .toArray();
+
+        console.log("GET comments ok");
+
+        res.json(comments);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET all comments of a booking
+router.get('/comments/booking/:id', async (req, res) => {
+    try {        
+        const comments = await db.collection(COMMENTS_COLLECTION)
+            .find({ booking_id: new ObjectId(req.params.id) })
+            .sort({ start_time: 1 })
+            .toArray();
+
+        console.log("GET comments ok");
+
+        res.json(comments);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET all comments of a user
+router.get('/comments/user/:id', async (req, res) => {
+    try {        
+        const comments = await db.collection(COMMENTS_COLLECTION)
+            .find({ booked_by: new ObjectId(req.params.id) })
+            .sort({ start_time: 1 })
+            .toArray();
+
+        console.log("GET comments ok");
+
+        res.json(comments);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET one comment
+router.get('/comments/:id', async (req, res) => {
+    try {
+        const comment = await db.collection(COMMENTS_COLLECTION)
+            .findOne({ _id: new ObjectId(req.params.id) });
+
+        if (!comment) {
+            return res.status(404).json({
+                error: 'comment could not be found'
+            });
+        }
+
+        console.info(`GET /api/comments/:id -> ${req.params.id} ok`);
+
+        res.json(comment);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST comment
+router.post('/comments', async (req, res) => {
+    try {
+        const comment = {
+            booking_id: new ObjectId(req.body.booking_id),
+            booked_by: new ObjectId(req.body.booked_by),
+            user_email: req.body.user_email,
+            text: req.body.text,
+            created_at: req.body.created_at
+        };
+
+        const result = await db.collection(COMMENTS_COLLECTION)
+            .insertOne(comment);
+
+        res.status(201).json({
+            _id: result.insertedId,
+            ...comment
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT comment
+router.put('/comments/:id', async (req, res) => {
+    try {
+        const comment = {
+            booking_id: new ObjectId(req.body.booking_id),
+            booked_by: new ObjectId(req.body.booked_by),
+            user_email: req.body.user_email,
+            text: req.body.text,
+            created_at: req.body.created_at
+        };
+
+        const result = await db.collection(COMMENTS_COLLECTION)
+            .updateOne(
+                { _id: new ObjectId(req.params.id) },
+                { $set: comment }
+            );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                error: 'comment not found',
+                id: req.params.id
+            });
+        }
+
+        res.json({ message: 'PUT ok' });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DELETE comment
+router.delete('/comments/:id', async (req, res) => {
+    try {
+        const result = await db.collection(COMMENTS_COLLECTION)
+            .deleteOne({ _id: new ObjectId(req.params.id) });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({
+                error: 'comment not found'
             });
         }
 
