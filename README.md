@@ -78,3 +78,9 @@ instruktionerna hur man skulle lösa den delen. Vi mailade läraren om hjälp oc
 - [Express](https://expressjs.com)
 - [SQLite](https://www.sqlite.org) (byts ut mot MongoDB)
 - [EJS](https://ejs.co) (byts ut mot frontend-ramverk)
+
+## MongoDB Datamodell
+
+![image](public/datamodell_resourcebooking_v1.drawio.png)
+
+
