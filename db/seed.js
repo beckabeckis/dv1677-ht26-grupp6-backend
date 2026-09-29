@@ -13,7 +13,7 @@ const client = new MongoClient(process.env.MONGODB_URI);
 try {
     await client.connect();
 
-    const db = client.db(process.env.DB_NAME);
+    const db = client.db(process.env.DATABASE_NAME);
     const resourcesCollection = db.collection('resources');
     const bookingsCollection = db.collection('bookings');
     const usersCollection = db.collection('users');

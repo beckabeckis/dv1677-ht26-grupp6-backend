@@ -50,10 +50,27 @@ npm start
 
 Dokumentera löpande vad ni gjort och hur ni löst problem.
 
-- Vecka 1: 
+- Vecka 1-2: 
 Diskuterat och bestämt vilket projekt och vilket ramverk vi kommer jobba med i kursen.
 Vi har haft tre möten där vi har diskuterat uppgiften, t.ex. hur vi skulle göra PUT-route då det inte var så tydligt i 
 instruktionerna hur man skulle lösa den delen. Vi mailade läraren om hjälp och löste sedan uppgiften.
+
+- Vecka 3:
+
+Vi jobbade med databasen, migrerade från SQLite till MongoDB.
+Skapade seed.js fil som byggde upp databasen med data.
+Tog bort alla vyer och skrev om app.js till att endast hantera ett JSON api.
+
+- Vecka 4:
+
+Kopplade oss till VPS med SSH-nycklar.
+Skrev git workflow filerna ci.yml och deploy.yml och driftsatte projektet i github.
+
+- Vecka 5:
+
+Utökade dokumenten i MongoDB och la till fler routes.
+Installerade Vite och Supertest och skrev om app.js och la till server.js så att testerna skulle fungera.
+Skrev tester till tre routes; GET, POST och DELETE resources.
 
 
 ## Krav
