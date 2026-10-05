@@ -1,10 +1,7 @@
 # Proxmox Booking HT26
 
-Starter-repo för DV1677 JavaScript-baserade webbramverk HT26.
-
-Ett alternativt projekt – ett server-renderat bokningssystem för resurser
-(t.ex. virtuella maskiner i Proxmox), byggt med Express och SQLite. Under
-kursens gång byggs det om/refaktoreras.
+Ett server-renderat bokningssystem för resurser
+(t.ex. virtuella maskiner i Proxmox), byggt med Express och MongoDB
 
 # dv1677-ht26-grupp6-backend
 
@@ -46,11 +43,32 @@ npm start
 Öppna sedan `http://localhost:3000`
 
 
+
+## Tester
+
+För att köra tester kör kommandot:
+
+> ```npm test```
+
+Testar tre olika typer av routes:
+- GET: hämta alla resurser
+- POST: lägga till en ny resusrs
+- DELETE: ta bort en resurs
+
+Detta testas för att se att databasen är kopplad korrekt, det går att hämta, ändra och ta bort data korrekt och routsen fungerar som planerat.
+
+## Driftsatt
+
+- Frontend: [https://jojjan-johansson.github.io/dv1677-ht26-grupp6-frontend/](https://jojjan-johansson.github.io/dv1677-ht26-grupp6-frontend/)
+- Backend: [https://dv1677-geordi.nplab.bth.se/](https://dv1677-geordi.nplab.bth.se/)
+
+
 ## Tillvägagångssätt
 
 Dokumentera löpande vad ni gjort och hur ni löst problem.
 
 - Vecka 1-2: 
+
 Diskuterat och bestämt vilket projekt och vilket ramverk vi kommer jobba med i kursen.
 Vi har haft tre möten där vi har diskuterat uppgiften, t.ex. hur vi skulle göra PUT-route då det inte var så tydligt i 
 instruktionerna hur man skulle lösa den delen. Vi mailade läraren om hjälp och löste sedan uppgiften.
@@ -89,12 +107,17 @@ Skrev tester till tre routes; GET, POST och DELETE resources.
 
 `PORT` - porten som Express lyssnar på -> `3000`
 
+`MONGODB_URI` - uri för att koppla dig till databasen -> `mongodb://localhost:27017`
+
+`DATABASE_NAME` - namn på databas -> `resourcebooking`
+
 ## Teknikstack
 
 - [Node](https://nodejs.org)
 - [Express](https://expressjs.com)
-- [SQLite](https://www.sqlite.org) (byts ut mot MongoDB)
-- [EJS](https://ejs.co) (byts ut mot frontend-ramverk)
+- [MongeDB](https://www.mongodb.com/)
+- [React](https://react.dev/)
+- [Vite](https://vite.dev/)
 
 ## MongoDB Datamodell
 
