@@ -1,6 +1,6 @@
 # Proxmox Booking HT26
 
-Ett server-renderat bokningssystem för resurser
+Ett bokningssystem för resurser
 (t.ex. virtuella maskiner i Proxmox), byggt med Express och MongoDB
 
 # dv1677-ht26-grupp6-backend
@@ -88,19 +88,7 @@ Skrev git workflow filerna ci.yml och deploy.yml och driftsatte projektet i gith
 
 Utökade dokumenten i MongoDB och la till fler routes.
 Installerade Vite och Supertest och skrev om app.js och la till server.js så att testerna skulle fungera.
-Skrev tester till tre routes; GET, POST och DELETE resources.
-
-
-## Krav
-
-> **OBS: Kräver Node.js 22.23 eller högre.**
-> `better-sqlite3` använder nativa binärer kompilerade för en specifik Node-version — äldre 22.x (t.ex. 22.11) ger `Segmentation fault` vid start.
->
-> Uppgradera med nvm:
-> ```bash
-> nvm install 22.23
-> nvm use 22.23
-> ```
+Skrev tester till tre routes; GET, POST och DELETE resources.-
 
 
 ## Env-variabler
@@ -119,7 +107,18 @@ Skrev tester till tre routes; GET, POST och DELETE resources.
 - [React](https://react.dev/)
 - [Vite](https://vite.dev/)
 
-## MongoDB Datamodell
+## MongoDB 
+
+Projektet använder databasen MongoDB som en docker-container i en VPS-server.
+
+GitHub secrets:
+
+- VPS_HOST — IP-adressen till vår VPS.
+- VPS_USER — Linux-användaren på VPS (ubuntu).
+- VPS_SSH_KEY — privat del av vår deploy-nyckel.
+- MONGODB_URI — anslutningssträng till databasen. Docker-container på VPS: mongodb://mongodb:27017.
+
+# Datamodell
 
 ![image](public/datamodell_resourcebooking_v1.drawio.png)
 

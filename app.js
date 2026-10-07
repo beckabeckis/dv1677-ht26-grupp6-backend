@@ -8,7 +8,7 @@ import routes from './routes.mjs';
 const app = express();
 
 app.disable('x-powered-by');
-app.set('view engine', 'ejs');
+app.set('view engine');
 
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(express.json());
