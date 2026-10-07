@@ -10,6 +10,9 @@ services:
       - PORT=3000
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - DATABASE_NAME=resourcebooking
+      # Broker
+      - BROKER_API_URL=http://194.47.155.214:8500
+      - BROKER_GROUP_TOKEN=${BROKER_GROUP_TOKEN}
     depends_on:
       - mongodb
     restart: always
