@@ -196,7 +196,7 @@ router.put('/bookings/:id', async (req, res) => {
     try {
         const booking = {
             resource_id: new ObjectId(req.body.resource_id),
-            booked_by: new ObjectId(req.body.booked_By),
+            booked_by: new ObjectId(req.body.booked_by),
             start_time: req.body.start_time,
             end_time: req.body.end_time,
             status: req.body.status
