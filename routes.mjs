@@ -1,9 +1,10 @@
+
 import express from 'express';
 import { ObjectId } from 'mongodb';
 import { db } from './db/database.mjs';
+import { getBrokerInfo } from './broker.mjs';
 
 const router = express.Router();
-
 
 // ========================================
 // RESOURCES
@@ -106,7 +107,6 @@ router.delete('/resources/:id', async (req, res) => {
     }
 });
 
-
 // ========================================
 // BOOKINGS
 // ========================================
@@ -131,7 +131,7 @@ router.get('/bookings', async (req, res) => {
 
 // GET all bookings of a resource
 router.get('/bookings/resource/:id', async (req, res) => {
-    try {        
+    try {
         const bookings = await db.collection(BOOKINGS_COLLECTION)
             .find({ resource_id: new ObjectId(req.params.id) })
             .sort({ start_time: 1 })
@@ -241,7 +241,6 @@ router.delete('/bookings/:id', async (req, res) => {
     }
 });
 
-
 // ========================================
 // USERS
 // ========================================
@@ -343,7 +342,6 @@ router.delete('/users/:id', async (req, res) => {
     }
 });
 
-
 // ========================================
 // COMMENTS
 // ========================================
@@ -368,7 +366,7 @@ router.get('/comments', async (req, res) => {
 
 // GET all comments of a booking
 router.get('/comments/booking/:id', async (req, res) => {
-    try {        
+    try {
         const comments = await db.collection(COMMENTS_COLLECTION)
             .find({ booking_id: new ObjectId(req.params.id) })
             .sort({ start_time: 1 })
@@ -385,7 +383,7 @@ router.get('/comments/booking/:id', async (req, res) => {
 
 // GET all comments of a user
 router.get('/comments/user/:id', async (req, res) => {
-    try {        
+    try {
         const comments = await db.collection(COMMENTS_COLLECTION)
             .find({ booked_by: new ObjectId(req.params.id) })
             .sort({ start_time: 1 })
@@ -492,6 +490,23 @@ router.delete('/comments/:id', async (req, res) => {
     }
     catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// ========================================
+// BROKER
+// ========================================
+
+// GET broker connection information
+router.get('/broker/whoami', async (req, res) => {
+    try {
+        const info = await getBrokerInfo();
+        res.json(info);
+    }
+    catch (error) {
+        res.status(502).json({
+            error: 'Kunde inte kontakta brokern'
+        });
     }
 });
 
