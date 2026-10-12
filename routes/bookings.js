@@ -4,16 +4,7 @@ import { ObjectId } from 'mongodb';
 import { db } from '../db/database.mjs';
 import { getBrokerInfo } from '../broker.mjs';
 
-const bookingRouter = express.Router();
-
-
-// import { listBookings, createBooking, cancelBooking } from '../controllers/bookingController.js'
-
-// const router = Router()
-// router.get('/', requireAuth, listBookings)
-// router.post('/', requireAuth, createBooking)
-// router.delete('/:id', requireAuth, cancelBooking)
-
+const bookingsRouter = express.Router();
 
 // ========================================
 // BOOKINGS
@@ -22,7 +13,7 @@ const bookingRouter = express.Router();
 const BOOKINGS_COLLECTION = "bookings";
 
 // GET all bookings
-bookingRouter.get('/bookings', requireAuth, async (req, res) => {
+bookingsRouter.get('/bookings', requireAuth, async (req, res) => {
     const query = req.user.role === 'admin' ? {} : { booked_by: req.user._id }
     try {
         const bookings = await db.collection(BOOKINGS_COLLECTION)
@@ -40,7 +31,7 @@ bookingRouter.get('/bookings', requireAuth, async (req, res) => {
 });
 
 // GET all bookings of a resource
-bookingRouter.get('/bookings/resource/:id', requireAuth, async (req, res) => {
+bookingsRouter.get('/bookings/resource/:id', requireAuth, async (req, res) => {
     try {
         const bookings = await db.collection(BOOKINGS_COLLECTION)
             .find({ resource_id: new ObjectId(req.params.id) })
@@ -57,7 +48,7 @@ bookingRouter.get('/bookings/resource/:id', requireAuth, async (req, res) => {
 });
 
 // GET one booking
-bookingRouter.get('/bookings/:id', requireAuth, async (req, res) => {
+bookingsRouter.get('/bookings/:id', requireAuth, async (req, res) => {
     try {
         const booking = await db.collection(BOOKINGS_COLLECTION)
             .findOne({ _id: new ObjectId(req.params.id) });
@@ -78,7 +69,7 @@ bookingRouter.get('/bookings/:id', requireAuth, async (req, res) => {
 });
 
 // POST booking
-bookingRouter.post('/bookings', requireAuth, async (req, res) => {
+bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
     const start = new Date(req.body.start_time)
     const end = new Date(req.body.end_time)
     if (isNaN(start) || isNaN(end) || start >= end) {
@@ -108,7 +99,7 @@ bookingRouter.post('/bookings', requireAuth, async (req, res) => {
 });
 
 // PUT booking
-bookingRouter.put('/bookings/:id', requireAuth, async (req, res) => {
+bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
     const start = new Date(req.body.start_time)
     const end = new Date(req.body.end_time)
     if (isNaN(start) || isNaN(end) || start >= end) {
@@ -144,7 +135,7 @@ bookingRouter.put('/bookings/:id', requireAuth, async (req, res) => {
 });
 
 // DELETE booking
-bookingRouter.delete('/booking/delete/:id', requireAuth, requireAdmin, async (req, res) => {
+bookingsRouter.delete('/booking/delete/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         const result = await db.collection(BOOKINGS_COLLECTION)
             .deleteOne({ _id: new ObjectId(req.params.id) });
@@ -162,7 +153,7 @@ bookingRouter.delete('/booking/delete/:id', requireAuth, requireAdmin, async (re
     }
 });
 
-bookingRouter.delete('/booking/cancel/:id', requireAuth, async ( req, res ) => {
+bookingsRouter.delete('/booking/cancel/:id', requireAuth, async ( req, res ) => {
     let id
     try { id = new ObjectId(req.params.id) } catch { return res.status(400).json({ error: 'Invalid id' }) }
 
@@ -181,7 +172,7 @@ bookingRouter.delete('/booking/cancel/:id', requireAuth, async ( req, res ) => {
 // ========================================
 
 // GET broker connection information
-bookingRouter.get('/broker/whoami', async (req, res) => {
+bookingsRouter.get('/broker/whoami', async (req, res) => {
     try {
         const info = await getBrokerInfo();
         res.json(info);
@@ -193,4 +184,4 @@ bookingRouter.get('/broker/whoami', async (req, res) => {
     }
 });
 
-export default bookingRouter;
+export default bookingsRouter;

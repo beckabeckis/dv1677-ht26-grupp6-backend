@@ -3,9 +3,11 @@ import express from 'express';
 import path from 'path';
 import morgan from 'morgan';
 import cors from 'cors';
-import routes from './routes/routes.mjs';
 import authRouter from './routes/auth.js';
-import bookingRouter from './routes/bookings.js';
+import bookingsRouter from './routes/bookings.js';
+import commentsRouter from './routes/comments.js';
+import resourcesRouter from './routes/resources.js';
+import usersRouter from './routes/users.js';
 
 const app = express();
 
@@ -21,7 +23,12 @@ if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined'));
 }
 
-app.use('/api', routes, authRouter, bookingRouter);
+app.use('/api', 
+    authRouter, 
+    bookingsRouter, 
+    commentsRouter, 
+    resourcesRouter, 
+    usersRouter);
 
 app.get('/', (req, res) => {
     res.json({ message: 'Booking Resources API' });
