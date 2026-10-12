@@ -1,8 +1,8 @@
-
 import express from 'express';
 import { ObjectId } from 'mongodb';
-import { db } from './db/database.mjs';
-import { getBrokerInfo } from './broker.mjs';
+import { db } from '../db/database.mjs';
+import { getBrokerInfo } from '../broker.mjs';
+import { register, login } from '../controllers/authController.js'
 
 const router = express.Router();
 
@@ -107,139 +107,6 @@ router.delete('/resources/:id', async (req, res) => {
     }
 });
 
-// ========================================
-// BOOKINGS
-// ========================================
-
-const BOOKINGS_COLLECTION = "bookings";
-
-// GET all bookings
-router.get('/bookings', async (req, res) => {
-    try {
-        const bookings = await db.collection(BOOKINGS_COLLECTION)
-            .find({})
-            .toArray();
-
-        console.log("GET bookings ok");
-
-        res.json(bookings);
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// GET all bookings of a resource
-router.get('/bookings/resource/:id', async (req, res) => {
-    try {
-        const bookings = await db.collection(BOOKINGS_COLLECTION)
-            .find({ resource_id: new ObjectId(req.params.id) })
-            .sort({ start_time: 1 })
-            .toArray();
-
-        console.log("GET bookings ok");
-
-        res.json(bookings);
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// GET one booking
-router.get('/bookings/:id', async (req, res) => {
-    try {
-        const booking = await db.collection(BOOKINGS_COLLECTION)
-            .findOne({ _id: new ObjectId(req.params.id) });
-
-        if (!booking) {
-            return res.status(404).json({
-                error: 'booking could not be found'
-            });
-        }
-
-        console.info(`GET /api/bookings/:id -> ${req.params.id} ok`);
-
-        res.json(booking);
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// POST booking
-router.post('/bookings', async (req, res) => {
-    try {
-        const booking = {
-            resource_id: new ObjectId(req.body.resource_id),
-            booked_by: new ObjectId(req.body.booked_by),
-            start_time: req.body.start_time,
-            end_time: req.body.end_time,
-            status: req.body.status || 'confirmed'
-        };
-
-        const result = await db.collection(BOOKINGS_COLLECTION)
-            .insertOne(booking);
-
-        res.status(201).json({
-            _id: result.insertedId,
-            ...booking
-        });
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// PUT booking
-router.put('/bookings/:id', async (req, res) => {
-    try {
-        const booking = {
-            resource_id: new ObjectId(req.body.resource_id),
-            booked_by: new ObjectId(req.body.booked_by),
-            start_time: req.body.start_time,
-            end_time: req.body.end_time,
-            status: req.body.status
-        };
-
-        const result = await db.collection(BOOKINGS_COLLECTION)
-            .updateOne(
-                { _id: new ObjectId(req.params.id) },
-                { $set: booking }
-            );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).json({
-                error: 'booking not found',
-                id: req.params.id
-            });
-        }
-
-        res.json({ message: 'PUT ok' });
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// DELETE booking
-router.delete('/bookings/:id', async (req, res) => {
-    try {
-        const result = await db.collection(BOOKINGS_COLLECTION)
-            .deleteOne({ _id: new ObjectId(req.params.id) });
-
-        if (result.deletedCount === 0) {
-            return res.status(404).json({
-                error: 'booking not found'
-            });
-        }
-
-        res.json({ message: 'DELETE ok' });
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 // ========================================
 // USERS
@@ -493,21 +360,6 @@ router.delete('/comments/:id', async (req, res) => {
     }
 });
 
-// ========================================
-// BROKER
-// ========================================
 
-// GET broker connection information
-router.get('/broker/whoami', async (req, res) => {
-    try {
-        const info = await getBrokerInfo();
-        res.json(info);
-    }
-    catch (error) {
-        res.status(502).json({
-            error: 'Kunde inte kontakta brokern'
-        });
-    }
-});
 
 export default router;

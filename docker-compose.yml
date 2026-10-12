@@ -1,28 +1,48 @@
 services:
-  app:
-    image: ghcr.io/beckabeckis/dv1677-ht26-grupp6-backend:latest
-    container_name: dv1677-ht26-grupp6-backend
-    ports:
-      - '3000:3000'
-    environment:
-      # MONGODB_URI sätts via .env-fil på VPS (injiceras av deploy.yml från GitHub Secret)
-      # Fallback: mongodb://mongodb:27017 (Docker-container, används om secret saknas)
-      - PORT=3000
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
-      - DATABASE_NAME=resourcebooking
-      # Broker
-      - BROKER_API_URL=http://194.47.155.214:8500
-      - BROKER_GROUP_TOKEN=${BROKER_GROUP_TOKEN}
-    depends_on:
-      - mongodb
-    restart: always
-
   mongodb:
     image: mongo:latest
     container_name: mongodb
+    ports:
+      - '27017:27017'
     volumes:
       - mongodb_data:/data/db
-    restart: always
 
 volumes:
   mongodb_data:
+
+
+
+
+
+
+
+
+
+# services:
+#   app:
+#     image: ghcr.io/beckabeckis/dv1677-ht26-grupp6-backend:latest
+#     container_name: dv1677-ht26-grupp6-backend
+#     ports:
+#       - '3000:3000'
+#     environment:
+#       # MONGODB_URI sätts via .env-fil på VPS (injiceras av deploy.yml från GitHub Secret)
+#       # Fallback: mongodb://mongodb:27017 (Docker-container, används om secret saknas)
+#       - PORT=3000
+#       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
+#       - DATABASE_NAME=resourcebooking
+#       # Broker
+#       - BROKER_API_URL=http://194.47.155.214:8500
+#       - BROKER_GROUP_TOKEN=${BROKER_GROUP_TOKEN}
+#     depends_on:
+#       - mongodb
+#     restart: always
+
+#   mongodb:
+#     image: mongo:latest
+#     container_name: mongodb
+#     volumes:
+#       - mongodb_data:/data/db
+#     restart: always
+
+# volumes:
+#   mongodb_data:
