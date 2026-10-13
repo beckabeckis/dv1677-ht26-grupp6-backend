@@ -181,6 +181,15 @@ router.post('/bookings', async (req, res) => {
         const result = await db.collection(BOOKINGS_COLLECTION)
             .insertOne(booking);
 
+        // Socket.io: ny bokning
+        req.io?.to(`resource:${booking.resource_id}`).emit(
+            'booking:created',
+            {
+                _id: result.insertedId,
+                ...booking
+            }
+        );
+
         res.status(201).json({
             _id: result.insertedId,
             ...booking
@@ -194,6 +203,19 @@ router.post('/bookings', async (req, res) => {
 // PUT booking
 router.put('/bookings/:id', async (req, res) => {
     try {
+        const bookingId = new ObjectId(req.params.id);
+
+        // Hämta tidigare bokning för att känna till resursen
+        const previousBooking = await db.collection(BOOKINGS_COLLECTION)
+            .findOne({ _id: bookingId });
+
+        if (!previousBooking) {
+            return res.status(404).json({
+                error: 'booking not found',
+                id: req.params.id
+            });
+        }
+
         const booking = {
             resource_id: new ObjectId(req.body.resource_id),
             booked_by: new ObjectId(req.body.booked_by),
@@ -204,7 +226,7 @@ router.put('/bookings/:id', async (req, res) => {
 
         const result = await db.collection(BOOKINGS_COLLECTION)
             .updateOne(
-                { _id: new ObjectId(req.params.id) },
+                { _id: bookingId },
                 { $set: booking }
             );
 
@@ -213,6 +235,26 @@ router.put('/bookings/:id', async (req, res) => {
                 error: 'booking not found',
                 id: req.params.id
             });
+        }
+
+        const updatedBooking = {
+            _id: bookingId,
+            ...booking
+        };
+
+        // Socket.io: meddela användare som följer resursen
+        req.io?.to(`resource:${booking.resource_id}`).emit(
+            'booking:updated',
+            updatedBooking
+        );
+
+        // Om bokningen flyttats till en annan resurs
+        // behöver även den tidigare resursens kalender uppdateras
+        if (String(previousBooking.resource_id) !== String(booking.resource_id)) {
+            req.io?.to(`resource:${previousBooking.resource_id}`).emit(
+                'booking:updated',
+                updatedBooking
+            );
         }
 
         res.json({ message: 'PUT ok' });
@@ -225,14 +267,35 @@ router.put('/bookings/:id', async (req, res) => {
 // DELETE booking
 router.delete('/bookings/:id', async (req, res) => {
     try {
+        const bookingId = new ObjectId(req.params.id);
+
+        // Hämta bokningen innan den raderas
+        const booking = await db.collection(BOOKINGS_COLLECTION)
+            .findOne({ _id: bookingId });
+
+        if (!booking) {
+            return res.status(404).json({
+                error: 'booking not found'
+            });
+        }
+
         const result = await db.collection(BOOKINGS_COLLECTION)
-            .deleteOne({ _id: new ObjectId(req.params.id) });
+            .deleteOne({ _id: bookingId });
 
         if (result.deletedCount === 0) {
             return res.status(404).json({
                 error: 'booking not found'
             });
         }
+
+        // Socket.io: meddela att bokningen tagits bort
+        req.io?.to(`resource:${booking.resource_id}`).emit(
+            'booking:deleted',
+            {
+                _id: booking._id,
+                resource_id: booking.resource_id
+            }
+        );
 
         res.json({ message: 'DELETE ok' });
     }

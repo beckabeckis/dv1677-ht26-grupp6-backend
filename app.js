@@ -19,6 +19,11 @@ if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined'));
 }
 
+app.use((req, res, next) => {
+    req.io = app.get('io');
+    next();
+});
+
 app.use('/api', routes);
 
 app.get('/', (req, res) => {
