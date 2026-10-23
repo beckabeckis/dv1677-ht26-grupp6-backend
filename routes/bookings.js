@@ -131,11 +131,9 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
 
 // PUT booking
 bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
-    const start = new Date(req.body.start_time)
+    const resourceId = new ObjectId(req.body.resource_id)
     const end = new Date(req.body.end_time)
-    if (isNaN(start) || isNaN(end) || start >= end) {
-        return res.status(400).json({ error: 'Invalid time range' })
-    }
+
     try {
         let bookingID
         try { bookingID = new ObjectId(req.params.id) } catch { return res.status(400).json({ error: 'Invalid id' }) }
@@ -159,22 +157,14 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
                 await broker.extend(resource.provider, previousBooking.broker.allocationId, previousBooking.broker.secret, end)
             } catch (err) {
                 if (!(err instanceof BrokerError)) throw err
-                return res.status(503).json({ error: 'Could not cancel at provider', code: err.code })
+                return res.status(503).json({ error: 'Could not extend time', code: err.code })
             }
         }
-         
-        const booking = {
-            resource_id: new ObjectId(req.body.resource_id),
-            booked_by: new ObjectId(req.body.booked_by),
-            start_time: start,
-            end_time: end,
-            status: req.body.status
-        };
 
         const result = await db.collection(BOOKINGS_COLLECTION)
             .updateOne(
                 { _id: new ObjectId(bookingID) },
-                { $set: booking }
+                { $set: { end_time: end } }
             );
 
         if (result.matchedCount === 0) {
@@ -185,14 +175,14 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
         }
 
         // Socket.io: meddela användare som följer resursen
-        req.io?.to(`resource:${booking.resource_id}`).emit(
+        req.io?.to(`resource:${resourceId}`).emit(
             'booking:updated',
             updatedBooking
         );
 
         // Om bokningen flyttats till en annan resurs
         // behöver även den tidigare resursens kalender uppdateras
-        if (String(previousBooking.resource_id) !== String(booking.resource_id)) {
+        if (String(previousBooking.resource_id) !== String(resourceId)) {
             req.io?.to(`resource:${previousBooking.resource_id}`).emit(
                 'booking:updated',
                 updatedBooking
@@ -206,49 +196,8 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
     }
 });
 
-// DELETE booking
-// bookingsRouter.delete('/booking/delete/:id', requireAuth, requireAdmin, async (req, res) => {
-//     try {
-
-//         const bookingId = new ObjectId(req.params.id);
-        
-//         // Hämta bokningen innan den raderas
-//         const booking = await db.collection(BOOKINGS_COLLECTION)
-//             .findOne({ _id: bookingId });
-
-//         if (!booking) {
-//             return res.status(404).json({
-//                 error: 'booking not found'
-//             });
-//         }
-
-//         const result = await db.collection(BOOKINGS_COLLECTION)
-//             .deleteOne({ _id: new ObjectId(bookingId) });
-
-//         if (result.deletedCount === 0) {
-//             return res.status(404).json({
-//                 error: 'booking not found'
-//             });
-//         }
-
-//         // Socket.io: meddela att bokningen tagits bort
-//         req.io?.to(`resource:${booking.resource_id}`).emit(
-//             'booking:deleted',
-//             {
-//                 _id: booking._id,
-//                 resource_id: booking.resource_id
-//             }
-//         );
-
-//         res.json({ message: 'DELETE ok' });
-//     }
-//     catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// });
-
 // Cancel booking
-bookingsRouter.delete('/booking/cancel/:id', requireAuth, async ( req, res ) => {
+bookingsRouter.delete('/booking/cancel/:id', requireAuth, requireAdmin, async ( req, res ) => {
     let bookingID
     try { bookingID = new ObjectId(req.params.id) } catch { return res.status(400).json({ error: 'Invalid id' }) }
 
