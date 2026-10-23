@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import authRouter from './routes/auth.js';
 import bookingsRouter from './routes/bookings.js';
+import brokerRouter from './routes/broker.js';
 import commentsRouter from './routes/comments.js';
 import resourcesRouter from './routes/resources.js';
 import usersRouter from './routes/users.js';
@@ -26,6 +27,7 @@ if (process.env.NODE_ENV !== 'test') {
 app.use('/api', 
     authRouter, 
     bookingsRouter, 
+    brokerRouter,
     commentsRouter, 
     resourcesRouter, 
     usersRouter);
