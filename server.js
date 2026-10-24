@@ -3,6 +3,7 @@ import app from './app.js'
 import { connectToDatabase } from './db/database.mjs'
 import { createServer } from 'node:http'
 import { Server } from 'socket.io'
+import { syncResources } from './syncResources.js'
 
 const PORT = process.env.PORT || 3000
 
@@ -33,8 +34,24 @@ io.on('connection', (socket) => {
 })
 
 // Starta servern när databasen är ansluten
-connectToDatabase().then(() => {
+connectToDatabase().then(async () => {
+    try {
+        await syncResources()
+        console.log('Resurser synkroniserade')
+    } catch (error) {
+        console.error('Kunde inte synkronisera resurser:', error)
+    }
     httpServer.listen(PORT, () => {
         console.log(`API listening on port ${PORT}`)
     })
 })
+
+setInterval(async () => {
+  try {
+    await syncResources()
+    console.log('Resurser synkroniserade')
+  } catch (error) {
+    console.error('Kunde inte synkronisera resurser:', error)
+  }
+}, 5 * 60 * 1000)
+
