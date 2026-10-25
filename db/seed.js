@@ -3,10 +3,21 @@ import { MongoClient } from 'mongodb';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
-import { broker, BrokerError } from '../config/broker.js'
+// import { broker, BrokerError } from '../config/broker.js'
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const projectRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..'
+);
 
-dotenv.config();
+dotenv.config({
+    path: path.join(projectRoot, '.env'),
+});
+
+const { broker, BrokerError } = await import('../config/broker.js');
+
 
 const bookings = JSON.parse(readFileSync('./db/bookings.json', 'utf-8'));
 const users = JSON.parse(readFileSync('./db/users.json', 'utf-8'));
@@ -41,6 +52,7 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         });
 
         if (!resource) {
+            console.log(`Resurs hittades inte: ${booking.resource}`)
             throw new Error(`Resurs hittades inte: ${booking.resource}`);
         }
 
@@ -49,13 +61,25 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         });
 
         if (!user) {
+            console.log(`Användare hittades inte: ${booking.booked_by}`)
             throw new Error(`Användare hittades inte: ${booking.booked_by}`);
         }
 
         const start = new Date(booking.start_time)
         const end = new Date(booking.end_time)
         if (isNaN(start) || isNaN(end) || start >= end) {
+            console.log(`Ogiltigt tidsintervall för bokningen: ${booking.resource}`)
+
             throw new Error(`Ogiltigt tidsintervall för bokningen: ${booking.resource}`);
+        }
+
+
+        let want = {}
+
+        if (resource.provider === "proxmox") {
+            want = {"vcpus":Number(booking.want.vcpus), "ramMb":Number(booking.want.ramMb), "diskGb":Number(booking.want.diskGb)}
+        } else if (resource.provider === "openstack") {
+            want = {"vcpus":Number(booking.want.vcpus), "ramMb":Number(booking.want.ramMb)}
         }
         
         const bookingId = new ObjectId()
@@ -65,7 +89,7 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
                 startsAt: start, 
                 endsAt: end, 
                 idempotencyKey: String(bookingId) }
-            : { want: booking.want, 
+            : { want: want, 
                 user: user._id, 
                 startsAt: start, 
                 endsAt: end, 
@@ -73,6 +97,8 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         
         try {
             const { allocation } = await broker.allocate(resource.provider, payload)
+
+            console.log(allocation)
 
             const newBooking = {
                 _id: bookingId, 
@@ -93,6 +119,8 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
             
 
         } catch (err) {
+            console.log(err)
+            console.log("last")
             if (!(err instanceof BrokerError)) throw err
             return { error: 'Booking service unavailable', code: err.code }
         }
@@ -155,14 +183,18 @@ try {
             name: comment.resource
         });
 
+        
         const user = await usersCollection.findOne({
             email: comment.booked_by
         });
-
+        
         const booking = await bookingsCollection.findOne({
             resource_id: resource._id,
             booked_by: user._id
         });
+        
+
+        console.log(booking)
 
         const createdAt = new Date(comment.created_at)
 
