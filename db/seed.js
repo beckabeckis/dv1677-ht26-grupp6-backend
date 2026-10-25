@@ -142,7 +142,7 @@ try {
 
     // Seeda resources
     
-    const resourcesResult = await seedResources(db, resourcesCollection)
+    const resourcesResult = await seedResources(resourcesCollection)
 
     // Seeda bookings och koppla dem till rätt resource och rätt user
     
