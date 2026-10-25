@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
-import { broker } from '../config/broker.js'
+import { broker, BrokerError } from '../config/broker.js'
 
 
 dotenv.config();
@@ -55,7 +55,7 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         const start = new Date(booking.start_time)
         const end = new Date(booking.end_time)
         if (isNaN(start) || isNaN(end) || start >= end) {
-            return res.status(400).json({ error: 'Invalid time range' })
+            return { error: 'Invalid time range' }
         }
         
         const bookingId = new ObjectId()
@@ -74,18 +74,18 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         try {
             const { allocation } = await broker.allocate(resource.provider, payload)
 
-            const booking = {
+            const newBooking = {
                 _id: bookingId, 
-                resource_id: new ObjectId(booking.resource_id),
-                booked_by: new ObjectId(booking.booked_by),
+                resource_id: new ObjectId(resource._id),
+                booked_by: new ObjectId(user.booked_by),
                 start_time: start,
                 end_time: end,
-                status: booking.status || 'confirmed',
+                status: 'confirmed',
                 created_at: new Date(),
             };
             
             await bookingsCollection
-                .insertOne({...booking,
+                .insertOne({...newBooking,
                 broker: { allocationId: allocation.id, secret: allocation.secret },
                 });
 
@@ -94,8 +94,7 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
 
         } catch (err) {
             if (!(err instanceof BrokerError)) throw err
-            if (err.status === 409) return res.status(409).json({ error: 'Booking denied', code: err.code })
-            return res.status(503).json({ error: 'Booking service unavailable', code: err.code })
+            return { error: 'Booking service unavailable', code: err.code }
         }
     }
     return count
