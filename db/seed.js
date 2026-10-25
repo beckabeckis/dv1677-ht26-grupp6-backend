@@ -3,21 +3,9 @@ import { MongoClient } from 'mongodb';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
-// import { broker, BrokerError } from '../config/broker.js'
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { broker, BrokerError } from '../config/broker.js'
 
-const projectRoot = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    '..'
-);
-
-dotenv.config({
-    path: path.join(projectRoot, '.env'),
-});
-
-const { broker, BrokerError } = await import('../config/broker.js');
-
+dotenv.config();
 
 const bookings = JSON.parse(readFileSync('./db/bookings.json', 'utf-8'));
 const users = JSON.parse(readFileSync('./db/users.json', 'utf-8'));
