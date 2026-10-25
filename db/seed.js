@@ -3,8 +3,7 @@ import { MongoClient } from 'mongodb';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
-import { broker } from '../config/broker.js'
-
+import { broker, BrokerError } from '../config/broker.js'
 
 dotenv.config();
 
@@ -41,6 +40,7 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         });
 
         if (!resource) {
+            console.log(`Resurs hittades inte: ${booking.resource}`)
             throw new Error(`Resurs hittades inte: ${booking.resource}`);
         }
 
@@ -49,13 +49,25 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         });
 
         if (!user) {
+            console.log(`Användare hittades inte: ${booking.booked_by}`)
             throw new Error(`Användare hittades inte: ${booking.booked_by}`);
         }
 
         const start = new Date(booking.start_time)
         const end = new Date(booking.end_time)
         if (isNaN(start) || isNaN(end) || start >= end) {
-            return res.status(400).json({ error: 'Invalid time range' })
+            console.log(`Ogiltigt tidsintervall för bokningen: ${booking.resource}`)
+
+            throw new Error(`Ogiltigt tidsintervall för bokningen: ${booking.resource}`);
+        }
+
+
+        let want = {}
+
+        if (resource.provider === "proxmox") {
+            want = {"vcpus":Number(booking.want.vcpus), "ramMb":Number(booking.want.ramMb), "diskGb":Number(booking.want.diskGb)}
+        } else if (resource.provider === "openstack") {
+            want = {"vcpus":Number(booking.want.vcpus), "ramMb":Number(booking.want.ramMb)}
         }
         
         const bookingId = new ObjectId()
@@ -65,7 +77,7 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
                 startsAt: start, 
                 endsAt: end, 
                 idempotencyKey: String(bookingId) }
-            : { want: booking.want, 
+            : { want: want, 
                 user: user._id, 
                 startsAt: start, 
                 endsAt: end, 
@@ -74,18 +86,20 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         try {
             const { allocation } = await broker.allocate(resource.provider, payload)
 
-            const booking = {
+            console.log(allocation)
+
+            const newBooking = {
                 _id: bookingId, 
-                resource_id: new ObjectId(booking.resource_id),
-                booked_by: new ObjectId(booking.booked_by),
+                resource_id: resource._id,
+                booked_by: user._id,
                 start_time: start,
                 end_time: end,
-                status: booking.status || 'confirmed',
+                status: 'confirmed',
                 created_at: new Date(),
             };
             
             await bookingsCollection
-                .insertOne({...booking,
+                .insertOne({...newBooking,
                 broker: { allocationId: allocation.id, secret: allocation.secret },
                 });
 
@@ -93,9 +107,10 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
             
 
         } catch (err) {
+            console.log(err)
+            console.log("last")
             if (!(err instanceof BrokerError)) throw err
-            if (err.status === 409) return res.status(409).json({ error: 'Booking denied', code: err.code })
-            return res.status(503).json({ error: 'Booking service unavailable', code: err.code })
+            return { error: 'Booking service unavailable', code: err.code }
         }
     }
     return count
@@ -142,7 +157,7 @@ try {
 
     // Seeda resources
     
-    const resourcesResult = await seedResources(db, resourcesCollection)
+    const resourcesResult = await seedResources(resourcesCollection)
 
     // Seeda bookings och koppla dem till rätt resource och rätt user
     
@@ -156,10 +171,11 @@ try {
             name: comment.resource
         });
 
+        
         const user = await usersCollection.findOne({
             email: comment.booked_by
         });
-
+        
         const booking = await bookingsCollection.findOne({
             resource_id: resource._id,
             booked_by: user._id
