@@ -13,6 +13,9 @@ services:
       # Broker
       - BROKER_API_URL=http://194.47.155.214:8500
       - BROKER_GROUP_TOKEN=${BROKER_GROUP_TOKEN}
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=24H
     depends_on:
       - mongodb
     restart: always
