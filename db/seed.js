@@ -55,7 +55,7 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
         const start = new Date(booking.start_time)
         const end = new Date(booking.end_time)
         if (isNaN(start) || isNaN(end) || start >= end) {
-            return { error: 'Invalid time range' }
+            throw new Error(`Ogiltigt tidsintervall för bokningen: ${booking.resource}`);
         }
         
         const bookingId = new ObjectId()
@@ -76,8 +76,8 @@ async function seedBookings (resourcesCollection, usersCollection, bookingsColle
 
             const newBooking = {
                 _id: bookingId, 
-                resource_id: new ObjectId(resource._id),
-                booked_by: new ObjectId(user.booked_by),
+                resource_id: resource._id,
+                booked_by: user._id,
                 start_time: start,
                 end_time: end,
                 status: 'confirmed',
