@@ -19,3 +19,25 @@ export async function getBrokerInfo() {
 
     return response.json();
 }
+
+export async function getBrokerInventory(provider) {
+    if (!BROKER_API_URL || !BROKER_GROUP_TOKEN) {
+        throw new Error('Broker-inställningar saknas');
+    }
+
+    if (provider !== "proxmox" || provider !== "maas" || provider !== "openstack") {
+        throw new Error('Not an existing provider!');
+    }
+
+    const response = await fetch(`${BROKER_API_URL}/inventory/:${provider}`, {
+        headers: {
+            'X-Booker-Group': BROKER_GROUP_TOKEN
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`Broker svarade med HTTP ${response.status}`);
+    }
+
+    return response.json();
+}

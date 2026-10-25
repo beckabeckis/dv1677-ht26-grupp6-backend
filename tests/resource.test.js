@@ -1,10 +1,19 @@
 // tests/courses.test.js
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { vi, test, describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { readFileSync } from 'fs'
 import request from 'supertest'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import app from '../app.js'
 import { connectDB, closeDB } from '../db/database.mjs'
+
+const mockResources = [
+    {
+        "name" : "Openstack",
+        "capacity" : "",
+        "active": "true",
+        "provider": "openstack"
+    }
+]
 
 let mongod
 
@@ -14,13 +23,8 @@ beforeAll(async () => {
     process.env.MONGODB_URI = mongod.getUri()
     process.env.DATABASE_NAME = 'resourcebooking_test'
 
-    // Seed med resursdata så att testerna har något att arbeta med
-    const courses = JSON.parse(
-        readFileSync('./db/resources.json', 'utf-8')
-    )
-
     const db = await connectDB()
-    await db.collection('resources').insertMany(courses)
+    await db.collection('resources').insertMany(mockResources)
 })
 
 afterAll(async () => {
@@ -44,11 +48,10 @@ describe('POST /api/resources', () => {
         const res = await request(app)
             .post('/api/resources')
             .send({
-                "name": "Test",
-                "type": "Testtype",
-                "description": "Testing test",
-                "created_at": "2026-09-16 12:00",
-                "capacity": 1
+                "name" : "Test",
+                "capacity" : 1,
+                "active": "true",
+                "provider": "openstack"
             })
             .expect(201)
 
@@ -62,11 +65,10 @@ describe('DELETE /api/resources/:id', () => {
         const created = await request(app)
             .post('/api/resources')
             .send({
-                "name": "Delite test",
-                "type": "Testtype",
-                "description": "Testing test",
-                "created_at": "2026-09-16 12:00",
-                "capacity": 1
+                "name" : "Test Delete",
+                "capacity" : 1,
+                "active": "true",
+                "provider": "openstack"
             })
             .expect(201)
 

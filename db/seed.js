@@ -3,16 +3,105 @@ import { MongoClient } from 'mongodb';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
+import { broker } from '../config/broker.js'
 
 
 dotenv.config();
 
-const resources = JSON.parse(readFileSync('./db/resources.json', 'utf-8'));
 const bookings = JSON.parse(readFileSync('./db/bookings.json', 'utf-8'));
 const users = JSON.parse(readFileSync('./db/users.json', 'utf-8'));
 const comments = JSON.parse(readFileSync('./db/comments.json', 'utf-8'));
 
 const client = new MongoClient(process.env.MONGODB_URI);
+
+async function seedResources(resourcesCollection) {
+    const sources = { proxmox: 'nodes', maas: 'machines', openstack: 'projects' }
+    let count = 0
+    for (const [provider, key] of Object.entries(sources)) {
+    const inventory = await broker.inventory(provider)
+    for (const r of inventory[key] ?? []) {
+        await resourcesCollection.updateOne(
+        { provider, externalId: r.id },
+        { $set: { name: r.name, capacity: r.capacity, active: true } },
+        { upsert: true },
+        )
+        count++
+    }
+    }
+    return count
+}
+
+async function seedBookings (resourcesCollection, usersCollection, bookingsCollection, bookings) {
+    let count = 0
+    
+    for (const booking of bookings) {
+
+        const resource = await resourcesCollection.findOne({
+            name: booking.resource
+        });
+
+        if (!resource) {
+            throw new Error(`Resurs hittades inte: ${booking.resource}`);
+        }
+
+        const user = await usersCollection.findOne({
+            email: booking.booked_by
+        });
+
+        if (!user) {
+            throw new Error(`Användare hittades inte: ${booking.booked_by}`);
+        }
+
+        const start = new Date(booking.start_time)
+        const end = new Date(booking.end_time)
+        if (isNaN(start) || isNaN(end) || start >= end) {
+            return res.status(400).json({ error: 'Invalid time range' })
+        }
+        
+        const bookingId = new ObjectId()
+        const payload = resource.provider === 'maas'
+            ? { systemId: resource.externalId, 
+                user: user._id, 
+                startsAt: start, 
+                endsAt: end, 
+                idempotencyKey: String(bookingId) }
+            : { want: booking.want, 
+                user: user._id, 
+                startsAt: start, 
+                endsAt: end, 
+                idempotencyKey: String(bookingId) }
+        
+        try {
+            const { allocation } = await broker.allocate(resource.provider, payload)
+
+            const booking = {
+                _id: bookingId, 
+                resource_id: new ObjectId(booking.resource_id),
+                booked_by: new ObjectId(booking.booked_by),
+                start_time: start,
+                end_time: end,
+                status: booking.status || 'confirmed',
+                created_at: new Date(),
+            };
+            
+            await bookingsCollection
+                .insertOne({...booking,
+                broker: { allocationId: allocation.id, secret: allocation.secret },
+                });
+
+            count++
+            
+
+        } catch (err) {
+            if (!(err instanceof BrokerError)) throw err
+            if (err.status === 409) return res.status(409).json({ error: 'Booking denied', code: err.code })
+            return res.status(503).json({ error: 'Booking service unavailable', code: err.code })
+        }
+    }
+    return count
+
+}
+
 try {
     await client.connect();
 
@@ -53,89 +142,13 @@ try {
 
     // Seeda resources
     
-    const resourceWithDate = [];
-    
-    for (const resource of resources) {        
-        const createdAt = new Date(resource.created_at)
-        
-        resourceWithDate.push({
-            name: resource.name,
-            type: resource.type,
-            description: resource.description,
-            created_at: createdAt,
-            capacity: resource.capacity
-        });
-    }
-    const resourceResult = await resourcesCollection.insertMany(resourceWithDate);
+    const resourcesResult = await seedResources(db, resourcesCollection)
 
     // Seeda bookings och koppla dem till rätt resource och rätt user
     
-    const bookingsWithIds = [];
 
-for (const booking of bookings) {
-    const resource = await resourcesCollection.findOne({
-        name: booking.resource
-    });
+    const bookingResult = await seedBookings (resourcesCollection, usersCollection, bookingsCollection, bookings)
 
-    console.log('booking: ', resource)
-
-    if (!resource) {
-        throw new Error(`Resurs hittades inte: ${booking.resource}`);
-    }
-
-    const user = await usersCollection.findOne({
-        email: booking.booked_by
-    });
-
-    if (!user) {
-        throw new Error(`Användare hittades inte: ${booking.booked_by}`);
-    }
-
-    bookingsWithIds.push({
-        resource_id: new ObjectId(resource._id),
-        booked_by: user._id,
-        start_time: new Date(booking.start_time),
-        end_time: new Date(booking.end_time),
-        status: booking.status,
-        created_at: new Date(booking.created_at)
-    });
-
-    console.log({
-        resource: resource.name,
-        resource_id: resource._id.toString()
-    });
-}
-
-const bookingResult = await bookingsCollection.insertMany(bookingsWithIds);
-    
-    
-    
-    // const bookingsWithIds = [];
-
-    // for (const booking of bookings) {
-    //     const resource = await resourcesCollection.findOne({
-    //         name: booking.resource
-    //     });
-
-    //     const user = await usersCollection.findOne({
-    //         email: booking.booked_by
-    //     });
-
-    //     const createdAt = new Date(booking.created_at)
-
-    //     bookingsWithIds.push({
-    //         resource_id: resource._id,
-    //         booked_by: user._id,
-    //         start_time: booking.start_time,
-    //         end_time: booking.end_time,
-    //         status: booking.status,
-    //         created_at: createdAt
-    //     });
-    // }
-
-    // const bookingResult = await bookingsCollection.insertMany(bookingsWithIds);
-
-    // Seeda comments och koppla dem till rätt resource
     const commentsWithIds = [];
 
     for (const comment of comments) {
@@ -167,7 +180,7 @@ const bookingResult = await bookingsCollection.insertMany(bookingsWithIds);
 
 
     console.log(
-        `Seeded ${usersResult.insertedCount} users, ${resourceResult.insertedCount} resources, ${bookingResult.insertedCount} bookings and ${commentsResult.insertedCount} commentsinto '${process.env.DATABASE_NAME}'`
+        `Seeded ${usersResult.insertedCount} users, ${resourcesResult} resources, ${bookingResult} bookings and ${commentsResult.insertedCount} commentsinto '${process.env.DATABASE_NAME}'`
     );
 } finally {
     await client.close();
