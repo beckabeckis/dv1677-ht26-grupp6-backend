@@ -16,10 +16,10 @@ export async function getAvailability(resourceId, date) {
   const rid = typeof resourceId === 'string' ? new ObjectId(resourceId) : resourceId
 
   const bookings = await db.collection('bookings').find({
-    resourceId: rid,
+    resource_id: rid,
     status: 'confirmed',
-    startsAt: { $lt: dayEnd },
-    endsAt: { $gt: dayStart },
+    start_time: { $lt: dayEnd },
+    end_time: { $gt: dayStart },
   }).toArray()
 
   const slots = []
@@ -35,8 +35,8 @@ export async function getAvailability(resourceId, date) {
 
     const conflict = bookings.find(b =>
       intervalsOverlap(
-        { startsAt: b.startsAt, endsAt: b.endsAt },
-        { startsAt: slotStart, endsAt: slotEnd }
+        { start_time: b.start_time, end_time: b.end_time },
+        { start_time: slotStart, end_time: slotEnd }
       )
     )
 

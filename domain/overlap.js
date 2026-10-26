@@ -2,15 +2,15 @@ import { ObjectId } from 'mongodb'
 import { db } from '../db/database.mjs'
 
 export function intervalsOverlap(a, b) {
-  return a.startsAt < b.endsAt && b.startsAt < a.endsAt
+  return a.start_time < b.end_time && b.start_time < a.end_time
 }
 
 export async function findConflicts(resourceId, startsAt, endsAt, excludeBookingId = null) {
   const query = {
-    resourceId: typeof resourceId === 'string' ? new ObjectId(resourceId) : resourceId,
+    resource_id: typeof resourceId === 'string' ? new ObjectId(resourceId) : resourceId,
     status: 'confirmed',
-    startsAt: { $lt: endsAt },
-    endsAt: { $gt: startsAt },
+    start_time: { $lt: endsAt },
+    end_time: { $gt: startsAt },
   }
   if (excludeBookingId) {
     query._id = { $ne: new ObjectId(excludeBookingId) }
