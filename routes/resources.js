@@ -109,7 +109,7 @@ resourcesRouter.delete('/resources/:id', async (req, res) => {
 // GET availability
 resourcesRouter.get('/resources/:id/availability', async (req, res) => {
     const { date } = req.query
-    if (!date || isNaN(new Date(dateStr))) {
+    if (!date) {
         return res.status(400).json({ error: 'date query param required (YYYY-MM-DD)' })
     }
     const slots = await getAvailability(req.params.id, date)

@@ -1,17 +1,3 @@
-// export function canCancelBooking(actor, booking) {
-//   if (actor.role === 'admin') return true
-//   return booking.bookedBy.toString() === actor._id.toString()
-// }
-
-// export function canManageResources(actor) {
-//   return actor.role === 'admin'
-// }
-
-// // Bookings are public — this is a room/resource system, not a medical system.
-// export function canViewBooking(actor, booking) {
-//   return true
-// }
-
 export function controlBookingPolicy(booking, usersBookings) {
   const hours = (booking.end_time - booking.start_time) / 3600000
 

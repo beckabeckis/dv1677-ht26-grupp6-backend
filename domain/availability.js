@@ -1,12 +1,17 @@
 import { ObjectId } from 'mongodb'
 import { db } from '../db/database.mjs'
 import { intervalsOverlap } from './overlap.js'
+import { fromZonedTime } from "date-fns-tz";
 
 export async function getAvailability(resourceId, date) {
-  const dayStart = new Date(date)
-  dayStart.setUTCHours(8, 0, 0, 0)
-  const dayEnd = new Date(date)
-  dayEnd.setUTCHours(18, 0, 0, 0)
+  const dayStart = fromZonedTime(
+    `${date}T08:00:00`,
+    "Europe/Stockholm"
+  );
+  const dayEnd = fromZonedTime(
+    `${date}T18:00:00`,
+    "Europe/Stockholm"
+  );
 
   const rid = typeof resourceId === 'string' ? new ObjectId(resourceId) : resourceId
 
@@ -19,10 +24,14 @@ export async function getAvailability(resourceId, date) {
 
   const slots = []
   for (let h = 8; h < 18; h++) {
-    const slotStart = new Date(date)
-    slotStart.setUTCHours(h, 0, 0, 0)
-    const slotEnd = new Date(date)
-    slotEnd.setUTCHours(h + 1, 0, 0, 0)
+    const slotStart = fromZonedTime(
+      `${date}T${String(h).padStart(2, "0")}:00:00`,
+      "Europe/Stockholm"
+    );
+    const slotEnd = fromZonedTime(
+      `${date}T${String(h + 1).padStart(2, "0")}:00:00`,
+      "Europe/Stockholm"
+    );
 
     const conflict = bookings.find(b =>
       intervalsOverlap(
