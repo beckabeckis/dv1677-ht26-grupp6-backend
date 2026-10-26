@@ -161,6 +161,21 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
 
         let allocation;
 
+        const bookingTimes = {
+            start_time: start,
+            end_time: end,
+        }
+
+        const bookings = await db.collection(BOOKINGS_COLLECTION)
+            .find({ booked_by: new ObjectId(user), status: "confirmed" })
+            .sort({ startsAt: 1 })
+            .toArray();
+
+        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings)
+                if (!bookingOk) {
+                    return res.status(409).json({ error: policyError })
+                }
+
         try {
             const result = await broker.allocate(
                 resource.provider,
@@ -200,15 +215,7 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
             }
         };
 
-        const bookings = await db.collection(BOOKINGS_COLLECTION)
-            .find({ booked_by: new ObjectId(user) })
-            .sort({ startsAt: 1 })
-            .toArray();
-
-        const { bookingOk, policyError } = controlBookingPolicy(booking, bookings)
-                if (!bookingOk) {
-                    return res.status(409).json({ error: 'Policy error', policyError })
-                }
+        
 
         await db.collection(BOOKINGS_COLLECTION).insertOne(booking);
 
@@ -287,6 +294,26 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
             });
         }
 
+         const bookingTimes = {
+            start_time: previousBooking.start_time,
+            end_time: end,
+        }
+
+        const bookings = await db.collection(BOOKINGS_COLLECTION)
+            .find({ booked_by: new ObjectId(user), status: "confirmed" })
+            .sort({ startsAt: 1 })
+            .toArray();
+
+        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings)
+                if (!bookingOk) {
+                    return res.status(409).json({ error: policyError })
+                }
+
+        const conflicts = await findConflicts(resource._id, previousBooking.start_time, end)
+        if (conflicts.length > 0) {
+            return res.status(409).json({ error: 'Time slot already booked', conflicts })
+        }
+
         // Beckas brokerintegration
         if (previousBooking.broker?.secret) {
             try {
@@ -306,21 +333,6 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
                     code: err.code
                 });
             }
-        }
-
-        const bookings = await db.collection(BOOKINGS_COLLECTION)
-            .find({ booked_by: new ObjectId(previousBooking.booked_by) })
-            .sort({ startsAt: 1 })
-            .toArray();
-
-        const conflicts = await findConflicts(resource._id, previousBooking.start_time, end)
-        if (conflicts.length > 0) {
-            return res.status(409).json({ error: 'Time slot already booked', conflicts })
-        }
-
-        const { bookingOk, policyError } = controlBookingPolicy(previousBooking, bookings)
-        if (!bookingOk) {
-            return res.status(409).json({ error: 'Policy error', policyError })
         }
             
 
