@@ -3,6 +3,12 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { ObjectId } from 'mongodb';
 import { db } from '../db/database.mjs';
 import { broker, BrokerError } from '../config/broker.js';
+import { findConflicts } from '../domain/overlap.js';
+import { controlBookingPolicy } from '../domain/policy.js';
+
+// ========================================
+// BOOKINGS
+// ========================================
 
 const bookingsRouter = express.Router();
 
@@ -119,6 +125,11 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
             });
         }
 
+        const conflicts = await findConflicts(resourceId, start, end)
+            if (conflicts.length > 0) {
+                return res.status(409).json({ error: 'Time slot already booked', conflicts })
+            }
+
         const resource = await db.collection('resources')
             .findOne({ _id: new ObjectId(resourceId) });
 
@@ -148,6 +159,21 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
             };
 
         let allocation;
+
+        const bookingTimes = {
+            start_time: start,
+            end_time: end,
+        }
+
+        const bookings = await db.collection(BOOKINGS_COLLECTION)
+            .find({ booked_by: new ObjectId(user), status: "confirmed" })
+            .sort({ startsAt: 1 })
+            .toArray();
+
+        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings)
+                if (!bookingOk) {
+                    return res.status(409).json({ error: policyError })
+                }
 
         try {
             const result = await broker.allocate(
@@ -187,6 +213,8 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
                 secret: allocation.secret
             }
         };
+
+        
 
         await db.collection(BOOKINGS_COLLECTION).insertOne(booking);
 
@@ -265,6 +293,26 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
             });
         }
 
+         const bookingTimes = {
+            start_time: previousBooking.start_time,
+            end_time: end,
+        }
+
+        const bookings = await db.collection(BOOKINGS_COLLECTION)
+            .find({ booked_by: new ObjectId(user), status: "confirmed" })
+            .sort({ startsAt: 1 })
+            .toArray();
+
+        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings)
+                if (!bookingOk) {
+                    return res.status(409).json({ error: policyError })
+                }
+
+        const conflicts = await findConflicts(resource._id, previousBooking.start_time, end)
+        if (conflicts.length > 0) {
+            return res.status(409).json({ error: 'Time slot already booked', conflicts })
+        }
+
         // Beckas brokerintegration
         if (previousBooking.broker?.secret) {
             try {
@@ -285,6 +333,7 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
                 });
             }
         }
+            
 
         const result = await db.collection(BOOKINGS_COLLECTION)
             .updateOne(

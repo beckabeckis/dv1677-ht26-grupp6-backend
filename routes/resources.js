@@ -1,6 +1,7 @@
 import express from 'express';
 import { ObjectId } from 'mongodb';
 import { db } from '../db/database.mjs';
+import { getAvailability } from '../domain/availability.js';
 
 const resourcesRouter = express.Router();
 
@@ -104,6 +105,17 @@ resourcesRouter.delete('/resources/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// GET availability
+resourcesRouter.get('/resources/:id/availability', async (req, res) => {
+    const { date } = req.query
+    if (!date) {
+        return res.status(400).json({ error: 'date query param required (YYYY-MM-DD)' })
+    }
+    const slots = await getAvailability(req.params.id, date)
+    res.json(slots)
+});
+
 
 
 export default resourcesRouter;
