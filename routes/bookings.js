@@ -142,7 +142,6 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
 
         const bookingId = new ObjectId();
 
-        // Beckas brokerintegration
         const payload = resource.provider === 'maas'
             ? {
                 systemId: resource.externalId,
@@ -284,7 +283,6 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
             });
         }
 
-        // Rättat: resource_id i stället för resourceId
         const resource = await db.collection('resources')
             .findOne({ _id: previousBooking.resource_id });
 
@@ -314,7 +312,6 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
             return res.status(409).json({ error: 'Time slot already booked', conflicts })
         }
 
-        // Beckas brokerintegration
         if (previousBooking.broker?.secret) {
             try {
                 await broker.extend(
@@ -349,7 +346,6 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
             });
         }
 
-        // Rättat: updatedBooking definieras innan den används
         const updatedBooking = {
             ...previousBooking,
             end_time: end
@@ -371,7 +367,7 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
 });
 
 // DELETE cancel booking
-bookingsRouter.delete('/booking/cancel/:id', requireAuth, async (req, res) => {
+bookingsRouter.delete('/booking/cancel/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         if (!ObjectId.isValid(req.params.id)) {
             return res.status(400).json({
@@ -390,20 +386,12 @@ bookingsRouter.delete('/booking/cancel/:id', requireAuth, async (req, res) => {
             });
         }
 
-        if (
-            req.user.role !== 'admin' &&
-            String(booking.booked_by) !== String(req.user._id)
-        ) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
         if (booking.status === 'cancelled') {
             return res.status(409).json({
                 error: 'Booking already cancelled'
             });
         }
 
-        // Rättat: resource_id i stället för resourceId
         const resource = await db.collection('resources')
             .findOne({ _id: booking.resource_id });
 
@@ -413,7 +401,6 @@ bookingsRouter.delete('/booking/cancel/:id', requireAuth, async (req, res) => {
             });
         }
 
-        // Beckas brokerintegration
         if (booking.broker?.secret) {
             try {
                 await broker.withdraw(

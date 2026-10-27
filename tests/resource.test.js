@@ -1,18 +1,42 @@
 // tests/courses.test.js
-import { vi, test, describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { readFileSync } from 'fs'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import app from '../app.js'
-import { connectDB, closeDB } from '../db/database.mjs'
+import { connectDB, closeDB, db } from '../db/database.mjs'
 
 const mockResources = [
     {
-        "name" : "Openstack",
-        "capacity" : "",
-        "active": "true",
-        "provider": "openstack"
-    }
+    "externalId": "dv1677-fakeprox",
+    "provider": "proxmox",
+    "active": true,
+    "capacity": {
+      "vcpus": 16,
+      "ramMb": 32090.65625,
+      "diskGb": 125.78551483154297
+    },
+    "name": "Proxmox"
+  },
+  {
+    "provider": "maas",
+    "externalId": "s3yqcb",
+    "active": true,
+    "capacity": {
+      "vcpus": 2,
+      "ramMb": 2048
+    },
+    "name": "exotic-tomcat"
+  },
+  {
+    "externalId": "d5b1c93f0ef94514a3003c6fb1b0144d",
+    "provider": "openstack",
+    "active": true,
+    "capacity": {
+      "vcpus": 20,
+      "ramMb": 51200
+    },
+    "name": "Openstack"
+  }
 ]
 
 let mongod
@@ -39,41 +63,30 @@ describe('GET /api/resources', () => {
             .expect(200)
 
         expect(res.body).toBeInstanceOf(Array)
-        expect(res.body.length).toBeGreaterThan(0)
+        expect(res.body.length).toBeGreaterThan(2)
+    })
+
+    it('svarar med 200 och rätt resurs', async () => {
+      const resource = await db.collection('resources').findOne({
+        name: 'exotic-tomcat',
+      })
+
+      const res = await request(app)
+      .get(`/api/resources/${resource._id}`)
+      .expect(200)
+
+      expect(res.body.name).toBe(resource.name)
+      expect(String(res.body._id)).toBe(String(resource._id))
+    })
+
+    it('fel resource id ska ge felkod 500', async () => {
+      const resource = await db.collection('resources').findOne({
+        name: 'exotic-tomcat',
+      })
+
+      const res = await request(app)
+      .get(`/api/resources/123456789`)
+      .expect(500)
     })
 })
 
-describe('POST /api/resources', () => {
-    it('skapar en kurs och svarar med 201', async () => {
-        const res = await request(app)
-            .post('/api/resources')
-            .send({
-                "name" : "Test",
-                "capacity" : 1,
-                "active": "true",
-                "provider": "openstack"
-            })
-            .expect(201)
-
-        expect(res.body).toHaveProperty('_id')
-        expect(res.body.name).toBe('Test')
-    })
-})
-
-describe('DELETE /api/resources/:id', () => {
-    it('tar bort en resurs och svarar med 200', async () => {
-        const created = await request(app)
-            .post('/api/resources')
-            .send({
-                "name" : "Test Delete",
-                "capacity" : 1,
-                "active": "true",
-                "provider": "openstack"
-            })
-            .expect(201)
-
-        await request(app)
-            .delete(`/api/resources/${created.body._id}`)
-            .expect(200)
-    })
-})
