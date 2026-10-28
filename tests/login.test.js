@@ -7,6 +7,8 @@ import { connectDB, closeDB } from '../db/database.mjs'
 
 let mongod
 
+process.env.JWT_SECRET = 'test-secret-for-local-testing';
+
 beforeAll(async () => {
     mongod = await MongoMemoryServer.create()
   

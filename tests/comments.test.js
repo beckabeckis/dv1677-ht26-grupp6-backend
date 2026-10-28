@@ -7,6 +7,8 @@ import { readFileSync } from 'fs'
 import { connectDB, closeDB, db } from '../db/database.mjs'
 import jwt from 'jsonwebtoken'
 
+process.env.JWT_SECRET = 'test-secret-for-local-testing';
+
 function getAuthToken(user) {
     return jwt.sign(
         {

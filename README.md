@@ -448,8 +448,6 @@ Vi testar här även JWT tokens genom att testa att skicka en GET request utan t
 
 Vi har även två broker tester som mockar svaret från brokern för att se till att routern ger rätt felkoder när man försöker boka en resurs som är full och när brokern är unreachable.
 
-I socketio.test.js görs ett test som kollar att socketkopplingen fungerar som den ska.
-
 I login.test.js så testar vi att en användare kan logga in och registrera sig. Vi testar även att en användare inte kan registrera sig med samma email som en existerande användare, att routen returnerar 400 om en feild (i vårt fall lösen) saknas och att man inte kan logga in med fel lösenord.
 
 
@@ -464,5 +462,4 @@ På grund av brist av tid så hann vi inte med att skriva några E2-tester i fro
 - test/domain.test.js
 - test/login.test.js
 - test/resource.test.js
-- test/socketio.test.js
 - test/users.test.js
