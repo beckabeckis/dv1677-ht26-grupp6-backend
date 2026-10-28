@@ -48,64 +48,6 @@ resourcesRouter.get('/resources/:id', async (req, res) => {
     }
 });
 
-// POST resource
-resourcesRouter.post('/resources', async (req, res) => {
-    try {
-        const result = await db.collection(RESOURCES_COLLECTION)
-            .insertOne(req.body);
-
-        res.status(201).json({
-            _id: result.insertedId,
-            ...req.body
-        });
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// PUT resource
-resourcesRouter.put('/resources/:id', async (req, res) => {
-    try {
-        const result = await db.collection(RESOURCES_COLLECTION)
-            .updateOne(
-                { _id: new ObjectId(req.params.id) },
-                { $set: req.body }
-            );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).json({
-                error: 'resource not found',
-                id: req.params.id
-            });
-        }
-
-        res.json({ message: 'PUT ok' });
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// DELETE resource
-resourcesRouter.delete('/resources/:id', async (req, res) => {
-    try {
-        const result = await db.collection(RESOURCES_COLLECTION)
-            .deleteOne({ _id: new ObjectId(req.params.id) });
-
-        if (result.deletedCount === 0) {
-            return res.status(404).json({
-                error: 'resource not found'
-            });
-        }
-
-        res.json({ message: 'DELETE ok' });
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // GET availability
 resourcesRouter.get('/resources/:id/availability', async (req, res) => {
     const { date } = req.query

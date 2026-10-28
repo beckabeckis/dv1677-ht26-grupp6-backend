@@ -3,9 +3,23 @@ import { MongoClient } from 'mongodb';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
-import { broker, BrokerError } from '../config/broker.js'
+// import { broker, BrokerError } from '../config/broker.js'
 
-dotenv.config();
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const projectRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..'
+);
+
+dotenv.config({
+    path: path.join(projectRoot, '.env'),
+});
+
+const { broker, BrokerError } = await import('../config/broker.js');
+
+// dotenv.config();
 
 const bookings = JSON.parse(readFileSync('./db/bookings.json', 'utf-8'));
 const users = JSON.parse(readFileSync('./db/users.json', 'utf-8'));
@@ -173,7 +187,7 @@ try {
 
         
         const user = await usersCollection.findOne({
-            email: comment.booked_by
+            email: comment.author
         });
         
         const booking = await bookingsCollection.findOne({
@@ -188,8 +202,7 @@ try {
 
         commentsWithIds.push({
             booking_id: booking._id,
-            booked_by: user._id,
-            user_email: comment.booked_by,
+            author: user._id,
             text: comment.text,
             created_at: createdAt
         });   

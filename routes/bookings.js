@@ -141,7 +141,6 @@ bookingsRouter.post('/bookings', requireAuth, async (req, res) => {
 
         const bookingId = new ObjectId();
 
-        // Beckas brokerintegration
         const payload = resource.provider === 'maas'
             ? {
                 systemId: resource.externalId,
@@ -283,7 +282,6 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
             });
         }
 
-        // Rättat: resource_id i stället för resourceId
         const resource = await db.collection('resources')
             .findOne({ _id: previousBooking.resource_id });
 
@@ -299,21 +297,20 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
         }
 
         const bookings = await db.collection(BOOKINGS_COLLECTION)
-            .find({ booked_by: new ObjectId(user), status: "confirmed" })
+            .find({ booked_by: new ObjectId(previousBooking.booked_by), status: "confirmed", _id: { $ne: bookingID } })
             .sort({ startsAt: 1 })
             .toArray();
 
-        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings)
+        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings, true)
                 if (!bookingOk) {
                     return res.status(409).json({ error: policyError })
                 }
 
-        const conflicts = await findConflicts(resource._id, previousBooking.start_time, end)
+        const conflicts = await findConflicts(resource._id, previousBooking.end_time, end)
         if (conflicts.length > 0) {
             return res.status(409).json({ error: 'Time slot already booked', conflicts })
         }
 
-        // Beckas brokerintegration
         if (previousBooking.broker?.secret) {
             try {
                 await broker.extend(
@@ -348,7 +345,6 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
             });
         }
 
-        // Rättat: updatedBooking definieras innan den används
         const updatedBooking = {
             ...previousBooking,
             end_time: end
@@ -370,7 +366,7 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
 });
 
 // DELETE cancel booking
-bookingsRouter.delete('/booking/cancel/:id', requireAuth, async (req, res) => {
+bookingsRouter.delete('/booking/cancel/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         if (!ObjectId.isValid(req.params.id)) {
             return res.status(400).json({
@@ -389,20 +385,12 @@ bookingsRouter.delete('/booking/cancel/:id', requireAuth, async (req, res) => {
             });
         }
 
-        if (
-            req.user.role !== 'admin' &&
-            String(booking.booked_by) !== String(req.user._id)
-        ) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
         if (booking.status === 'cancelled') {
             return res.status(409).json({
                 error: 'Booking already cancelled'
             });
         }
 
-        // Rättat: resource_id i stället för resourceId
         const resource = await db.collection('resources')
             .findOne({ _id: booking.resource_id });
 
@@ -412,7 +400,6 @@ bookingsRouter.delete('/booking/cancel/:id', requireAuth, async (req, res) => {
             });
         }
 
-        // Beckas brokerintegration
         if (booking.broker?.secret) {
             try {
                 await broker.withdraw(
