@@ -180,6 +180,9 @@ try {
             resource_id: resource._id,
             booked_by: user._id
         });
+        
+
+        console.log(booking)
 
         const createdAt = new Date(comment.created_at)
 
