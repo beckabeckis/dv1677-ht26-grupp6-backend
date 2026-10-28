@@ -189,3 +189,188 @@ Funktionen:
 Resultat i devtools (ger error 401):
 ![image](public/noAuthSite.png)
 
+## Krav 2 – WebSockets och realtidsuppdateringar
+
+### I backend:
+
+Vi har installerat Socket.io för att kunna skicka realtidsuppdateringar mellan backend och frontend när bokningar förändras.
+
+Vi har uppdaterat `server.js` så att Express och Socket.io använder samma HTTP-server. Vi har även lagt till CORS-konfiguration för att frontend ska kunna ansluta till Socket.io-servern.
+
+Vi har implementerat olika events för att hantera anslutningar och uppdateringar. När en användare ansluter till Socket.io-servern körs eventet `connection`. Vi har även lagt till ett `join`-event som gör att användaren kan ansluta till ett specifikt rum (room).
+
+Vi har valt att skapa ett rum för varje resurs med namnet `resource:${resourceId}`. På så sätt skickas uppdateringar till de användare som tittar på samma resurs.
+
+När en bokning skapas skickas eventet `booking:created` till det aktuella rummet.
+
+Vi har även lagt till hantering av `disconnect`, som körs när en användare kopplar från Socket.io-servern.
+
+**Events som används:**
+
+| Event | Funktion |
+|-------|----------|
+| `connection` | Hanterar när en klient ansluter till servern. |
+| `join` | Ansluter klienten till ett rum för en specifik resurs. |
+| `disconnect` | Hanterar när klienten kopplar från servern. |
+| `booking:created` | Meddelar att en ny bokning har skapats. |
+| `booking:updated` | Frontend lyssnar efter ändringar av bokningar. |
+| `booking:deleted` | Frontend lyssnar efter borttagna bokningar. |
+
+**Filer som har lagts till / ändrats:**
+
+- `server.js`
+- `app.js`
+- `routes.mjs`
+- `package.json`
+- `package-lock.json`
+
+### I frontend:
+
+Vi har installerat `socket.io-client` och uppdaterat `Resource.jsx` för att kunna ta emot realtidsuppdateringar från backend.
+
+Vi använder Reacts `useEffect` för att skapa en Socket.io-anslutning när en inloggad användare öppnar en resurs.
+
+När anslutningen har etablerats skickas ett `join`-event med resursens ID så att användaren ansluts till rätt rum.
+
+Vi har lagt till eventlyssnare för:
+
+- `booking:created`
+- `booking:updated`
+- `booking:deleted`
+
+När något av dessa events tas emot anropas funktionen `handleBookingChange()`, som hämtar bokningarna på nytt från backend.
+
+På så sätt kan bokningslistan uppdateras automatiskt utan att användaren behöver ladda om webbsidan.
+
+Vi har även implementerat cleanup i `useEffect`.
+
+När användaren lämnar sidan eller byter resurs tas eventlyssnarna bort med `socket.off()` och anslutningen stängs med `socket.disconnect()`.
+
+Detta förhindrar att gamla anslutningar ligger kvar och att samma event hanteras flera gånger.
+
+**Filer som har lagts till / ändrats:**
+
+- `src/pages/Resource.jsx`
+- `package.json`
+- `package-lock.json`
+
+### Testning
+
+Vi har öppnat bokningssystemet i två olika webbläsarfönster och loggat in med två olika användare.
+
+Båda användarna har öppnat samma resurs, VM-01.
+
+Vi har kontrollerat att båda användarna kan se samma kommentarer till en bokning.
+
+I testet visas kommentarerna "hej hej" och "testar 123" med samma tidsstämplar i båda webbläsarfönstren.
+
+Vi har även kontrollerat att användarna har olika behörigheter. I det ena fönstret visas knappar för att redigera och ta bort kommentarer, medan det andra fönstret endast visar kommentarerna och formuläret för att skriva en ny kommentar.
+
+**Resultat:**
+
+Testet visar att två olika användare kan hämta och visa samma information från backend.
+
+Vi har testat realtidsfunktionen genom att öppna samma resurs i två olika webbläsarfönster. När en bokning skapades eller ändrades i det ena fönstret uppdaterades informationen automatiskt i det andra, utan att sidan behövde laddas om.
+**Bild från testningen:**
+
+Resultat från testet:
+
+![image](public/krav2-test.png)
+
+## Krav 3
+
+### I backend:
+
+Vi har lagt till ett kommentarsystem där användare kan skapa, läsa, redigera och radera kommentarer kopplade till bokningar.
+
+Kommentarerna sparas i en egen collection i MongoDB som heter `comments`. Varje kommentar kopplas till rätt bokning genom `booking_id`.
+
+En kommentar innehåller ett eget ID (`_id`), bokningens ID (`booking_id`), ID för användaren som skrivit kommentaren (`author`), kommentarens text (`text`) och datum och tid när kommentaren skapades (`created_at`). När en kommentar redigeras läggs även `updated_at` till.
+
+Vi har skapat `routes/comments.js` där vi hanterar API-anropen för kommentarerna. Vi har lagt till routes för att hämta alla kommentarer, hämta kommentarer för en specifik bokning eller användare, hämta en enskild kommentar samt skapa, redigera och radera kommentarer.
+
+Vi har lagt till validering som kontrollerar att ID:n har ett giltigt MongoDB ObjectId-format, att kommentarstexten inte är tom och att den inte innehåller fler än 2 000 tecken.
+
+När en kommentar skapas kontrollerar vi också att bokningen finns i databasen.
+
+Alla kommentarsroutes använder `requireAuth` från vår befintliga autentiseringsmiddleware. Det innebär att användaren måste vara inloggad för att kunna använda API:t.
+
+Vi har även lagt till funktionen `canManageComment()` som kontrollerar om användaren har rätt att redigera eller radera en kommentar. Endast den som har skrivit kommentaren eller en administratör får göra detta.
+
+Om en annan användare försöker redigera eller radera kommentaren returnerar backend `403 Forbidden`.
+
+För att uppdatera kommentarerna i realtid har vi använt Socket.io från krav 2.
+
+När en kommentar skapas, redigeras eller raderas skickas en Socket.io-händelse till det rum som tillhör bokningens resurs.
+
+Vi använder följande events:
+
+- `comment:created` – när en kommentar skapas.
+- `comment:updated` – när en kommentar redigeras.
+- `comment:deleted` – när en kommentar raderas.
+
+Händelserna skickas efter respektive databasoperation och innehåller bokningens ID och kommentarens ID.
+
+Frontend kan då hämta de uppdaterade kommentarerna via API:t.
+
+När en bokning avbokas ändras dess status till `cancelled` i databasen i stället för att bokningen tas bort. Kommentarerna finns därför kvar och är fortfarande kopplade till bokningen.
+
+Vi har inte lagt till någon separat automatisk radering av kommentarer vid permanent radering av bokningar.
+
+**Filer som har lagts till / ändrats:**
+
+- `routes/comments.js` – ny fil för API-routes, validering, behörighetskontroll och Socket.io-events för kommentarer.
+- `app.js` – uppdaterad med import och registrering av `commentsRouter`.
+
+
+### I frontend:
+
+Vi har skapat komponenten `BookingComments.jsx` där användare kan läsa, skapa, redigera och radera kommentarer på bokningar.
+
+Komponenten hämtar kommentarerna från backend och visar dem under respektive bokning.
+
+Vi har lagt till ett textfält där användaren kan skriva och skicka en ny kommentar.
+
+Vi har även lagt till funktioner för att redigera och radera befintliga kommentarer.
+
+Knapparna för att redigera och radera visas endast för kommentarens författare eller en administratör. Backend gör dessutom en egen behörighetskontroll.
+
+Vi visar datum och tid när kommentaren skapades. Om kommentaren har ändrats visas även att den är redigerad.
+
+Vi har uppdaterat `Resource.jsx` så att kommentarskomponenten visas tillsammans med bokningarna på resurssidan.
+
+Vi har också lagt till realtidsuppdateringar för kommentarerna genom Socket.io.
+
+I `BookingComments.jsx` ansluter vi till resursens Socket.io-rum och lyssnar på `comment:created`, `comment:updated` och `comment:deleted`.
+
+När en händelse tas emot kontrollerar vi vilken bokning den gäller och hämtar kommentarerna på nytt från backend om händelsen gäller den aktuella bokningen.
+
+Det innebär att användare som tittar på samma resurs kan se förändringar i kommentarerna utan att behöva ladda om sidan.
+
+Genom att hämta kommentarerna på nytt via API:t undviker vi också att lägga till samma kommentar flera gånger från Socket.io-händelser.
+
+När komponenten tas bort stängs Socket.io-anslutningen och lyssnarna tas bort.
+
+**Filer som har lagts till / ändrats:**
+
+- `src/components/BookingComments.jsx` – ny komponent för att visa, skapa, redigera och radera kommentarer samt hantera realtidsuppdateringar.
+- `src/pages/Resource.jsx` – uppdaterad för att visa kommentarskomponenten tillsammans med bokningarna.
+
+
+### Test av kommentarer:
+
+Vi har manuellt testat att skapa, läsa, redigera och radera kommentarer på en bokning.
+
+Vi har även testat realtidsuppdateringarna genom att öppna samma resurs i två olika webbläsarfönster med två olika inloggade användare.
+
+När vi skapade en kommentar i det ena fönstret visades den automatiskt i det andra utan att sidan behövde laddas om.
+
+Vi har också kontrollerat behörigheterna i gränssnittet genom att använda två olika användarkonton.
+
+Den användare som hade skrivit kommentarerna kunde se knapparna för att redigera och radera dem, medan den andra användaren kunde läsa kommentarerna men inte såg dessa knappar.
+
+Vi har även granskat behörighetskontrollen i backend och kontrollerat att koden returnerar `403 Forbidden` när en användare saknar rätt att redigera eller radera en kommentar.
+
+**Se bilden under krav 2**, där två användare är inloggade samtidigt och tittar på samma resurs. Bilden visar kommentarerna och skillnaden i vilka knappar användarna har tillgång till.
+
+Själva realtidsuppdateringen utan omladdning har vi verifierat genom manuell testning.
