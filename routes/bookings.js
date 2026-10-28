@@ -297,16 +297,16 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
         }
 
         const bookings = await db.collection(BOOKINGS_COLLECTION)
-            .find({ booked_by: new ObjectId(user), status: "confirmed" })
+            .find({ booked_by: new ObjectId(previousBooking.booked_by), status: "confirmed", _id: { $ne: bookingID } })
             .sort({ startsAt: 1 })
             .toArray();
 
-        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings)
+        const { bookingOk, policyError } = controlBookingPolicy(bookingTimes, bookings, true)
                 if (!bookingOk) {
                     return res.status(409).json({ error: policyError })
                 }
 
-        const conflicts = await findConflicts(resource._id, previousBooking.start_time, end)
+        const conflicts = await findConflicts(resource._id, previousBooking.end_time, end)
         if (conflicts.length > 0) {
             return res.status(409).json({ error: 'Time slot already booked', conflicts })
         }

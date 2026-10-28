@@ -5,6 +5,19 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import app from '../app.js'
 import { readFileSync } from 'fs'
 import { connectDB, closeDB, db } from '../db/database.mjs'
+import jwt from 'jsonwebtoken'
+
+function getAuthToken(user) {
+    return jwt.sign(
+        {
+            userId: user._id.toString(),
+            email: user.email,
+            role: user.role,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' },
+    )
+}
 
 const mockResources = [
     {
@@ -42,6 +55,10 @@ const mockResources = [
 
 
 let mongod
+let testUserStudent
+let testUserAdmin
+let authTokenStudent
+let authTokenAdmin
 
 beforeAll(async () => {
     mongod = await MongoMemoryServer.create()
@@ -82,6 +99,16 @@ beforeAll(async () => {
             throw new Error(`Användare hittades inte: ${booking.booked_by}`);
         }
 
+        testUserStudent = await db.collection('users').findOne({
+            email: 'erik@student.bth.se',
+        })
+        testUserAdmin = await db.collection('users').findOne({
+            email: 'anna@student.bth.se',
+        })
+
+        authTokenStudent = getAuthToken(testUserStudent)
+        authTokenAdmin = getAuthToken(testUserAdmin)
+
         const newBooking = {
             resource_id: resource._id,
             booked_by: user._id,
@@ -108,7 +135,7 @@ beforeAll(async () => {
 
         
         const user = await db.collection("users").findOne({
-            email: comment.booked_by
+            email: comment.author
         });
         
         const booking = await db.collection("bookings").findOne({
@@ -120,8 +147,7 @@ beforeAll(async () => {
 
         await db.collection("comments").insertOne({
             booking_id: booking._id,
-            booked_by: user._id,
-            user_email: comment.booked_by,
+            author: user._id,
             text: comment.text,
             created_at: createdAt
         });   
@@ -138,46 +164,82 @@ describe('GET /api/comments', () => {
     it('svarar med 200 och en array med kommentar', async () => {
         const res = await request(app)
             .get('/api/comments')
+            .set('Authorization', `Bearer ${authTokenStudent}`)
             .expect(200)
 
         expect(res.body).toBeInstanceOf(Array)
-        expect(res.body.length).toBeGreaterThan(0)
+        expect(res.body.length).toBeGreaterThan(1)
     })
 
-    it('hämta alla commentarer från en bokning, svarar med 200 och rätt kommentar', async () => {
+    it('hämta alla kommentarer från en bokning, svarar med 200 och rätt kommentar', async () => {
         const comment = await db.collection('comments').findOne()
 
         const res = await request(app)
-        .get(`/api/comments/booking/${comment.booking_id}`)
-        .expect(200)
+            .get(`/api/comments/booking/${comment.booking_id}`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .expect(200)
 
         expect(Array.isArray(res.body)).toBe(true)
         expect(res.body).toHaveLength(1)
         expect(res.body[0].text).toBe(comment.text)
     })
 
-    it('hämta alla commentarer från en bokning, fel booking_id ska svara med felkod 500', async () => {
+    it('hämta alla kommentarer från en bokning, fel booking_id ska svara med felkod 404', async () => {
         const res = await request(app)
-        .get(`/api/comments/booking/123456789`)
-        .expect(500)
+            .get(`/api/comments/booking/6ade805af473a2be3eb049c5`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .expect(404)
     })
 
-    it('hämta alla commentarer från en användare, svarar med 200 och rätt kommentar', async () => {
-        const comment = await db.collection('comments').findOne()
+    it('hämta alla kommentarer från samma användare, svarar med 200 och rätt kommentar', async () => {
+        const comment = await db.collection('comments').findOne({
+            author: testUserStudent._id
+        })
 
         const res = await request(app)
-        .get(`/api/comments/user/${comment.booked_by}`)
-        .expect(200)
+            .get(`/api/comments/user/${comment.author}`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .expect(200)
 
         expect(Array.isArray(res.body)).toBe(true)
         expect(res.body).toHaveLength(1)
         expect(res.body[0].text).toBe(comment.text)
     })
 
-    it('hämta alla commentarer från en användare, fel user_id ska svara med felkod 500', async () => {
+    it('hämta alla kommentareren från en annan använadre som admin, svarar med 200 och rätt kommentar', async () => {
+        const comment = await db.collection('comments').findOne({
+            author: testUserStudent._id
+        })
+
         const res = await request(app)
-        .get(`/api/comments/user/123456789`)
-        .expect(500)
+            .get(`/api/comments/user/${comment.author}`)
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .expect(200)
+
+        expect(Array.isArray(res.body)).toBe(true)
+        expect(res.body).toHaveLength(1)
+        expect(res.body[0].text).toBe(comment.text)
+    })
+
+    it('hämta alla kommentarer från en annan använadre som student, svarar med 403', async () => {
+        const comment = await db.collection('comments').findOne({
+            author: testUserAdmin._id
+        })
+
+        const res = await request(app)
+            .get(`/api/comments/user/${comment.author}`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .expect(403)
+    })
+
+    it('hämta alla commentarer från en användare, ej existernade user_id ska svara med 200 och inga kommentarer', async () => {
+        const res = await request(app)
+            .get(`/api/comments/user/6ade805af473a2be3eb049c5`)
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .expect(200)
+
+        expect(Array.isArray(res.body)).toBe(true)
+        expect(res.body).toHaveLength(0)
     })
 })
 
@@ -185,14 +247,13 @@ describe('POST /api/comments', () => {
     it('skapar en kommentar och svarar med 201', async () => {
 
         const booking = await db.collection("bookings").findOne()
-        const user = await db.collection("users").findOne()
 
         const res = await request(app)
             .post('/api/comments')
+            .set('Authorization', `Bearer ${authTokenStudent}`)
             .send({
                 "booking_id" : booking._id,
-                "booked_by" : user._id,
-                "user_email": user.email,
+                "author" : testUserStudent._id,
                 "text": "It's fine.",
                 "created_at": "2026-09-15 12:01"
             })
@@ -206,14 +267,13 @@ describe('POST /api/comments', () => {
 describe('PUT /api/comments', () => {
     it('ändrar en kommentar och svarar med 200', async () => {
         const booking = await db.collection("bookings").findOne()
-        const user = await db.collection("users").findOne()
 
         const created = await request(app)
             .post('/api/comments')
+            .set('Authorization', `Bearer ${authTokenStudent}`)
             .send({
                 "booking_id" : booking._id,
-                "booked_by" : user._id,
-                "user_email": user.email,
+                "author" : testUserStudent._id,
                 "text": "It's fine.",
                 "created_at": "2026-09-15 12:01"
             })
@@ -221,36 +281,119 @@ describe('PUT /api/comments', () => {
 
         const res = await request(app)
             .put(`/api/comments/${created.body._id}`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
             .send({
-                "booking_id" : booking._id,
-                "booked_by" : user._id,
-                "user_email": user.email,
                 "text": "It's finer.",
-                "created_at": "2026-09-15 12:01"
             })
             .expect(200)
 
-        expect(res.body).toHaveProperty( 'message', 'PUT ok' )
+        expect(res.body).toHaveProperty('_id')
+    })
+
+    it('admin får ändra andras kommentarer och svarar med 200', async () => {
+        const booking = await db.collection("bookings").findOne()
+
+        const created = await request(app)
+            .post('/api/comments')
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .send({
+                "booking_id" : booking._id,
+                "author" : testUserStudent._id,
+                "text": "It's fine.",
+                "created_at": "2026-09-15 12:01"
+            })
+            .expect(201)
+
+        const res = await request(app)
+            .put(`/api/comments/${created.body._id}`)
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .send({
+                "text": "It's finer.",
+            })
+            .expect(200)
+
+        expect(res.body).toHaveProperty('_id')
+    })
+
+    it('student får inte ändra andras kommentarer och svarar med 403', async () => {
+        const booking = await db.collection("bookings").findOne()
+
+        const created = await request(app)
+            .post('/api/comments')
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .send({
+                "booking_id" : booking._id,
+                "author" : testUserAdmin._id,
+                "text": "It's fine.",
+                "created_at": "2026-09-15 12:01"
+            })
+            .expect(201)
+
+        const res = await request(app)
+            .put(`/api/comments/${created.body._id}`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .send({
+                "text": "It's finer.",
+            })
+            .expect(403)
     })
 })
 
 describe('DELETE /api/comments/:id', () => {
     it('tar bort en kommentar och svarar med 201', async () => {
         const booking = await db.collection("bookings").findOne()
-        const user = await db.collection("users").findOne()
 
         const created = await request(app)
             .post('/api/comments')
+            .set('Authorization', `Bearer ${authTokenStudent}`)
             .send({
                 "booking_id" : booking._id,
-                "booked_by" : user._id,
-                "user_email": user.email,
+                "author" : testUserStudent._id,
                 "text": "It's fine.",
                 "created_at": "2026-09-15 12:01"
             })
 
         await request(app)
             .delete(`/api/comments/${created.body._id}`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
             .expect(200)
+    })
+
+    it('admin får ta bort andras kommentarer och svarar med 201', async () => {
+        const booking = await db.collection("bookings").findOne()
+
+        const created = await request(app)
+            .post('/api/comments')
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .send({
+                "booking_id" : booking._id,
+                "author" : testUserStudent._id,
+                "text": "It's fine.",
+                "created_at": "2026-09-15 12:01"
+            })
+
+        await request(app)
+            .delete(`/api/comments/${created.body._id}`)
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .expect(200)
+    })
+
+    it('student får inte ta bort andras kommentarer, svarar med 403', async () => {
+        const booking = await db.collection("bookings").findOne()
+
+        const created = await request(app)
+            .post('/api/comments')
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .send({
+                "booking_id" : booking._id,
+                "author" : testUserAdmin._id,
+                "text": "It's fine.",
+                "created_at": "2026-09-15 12:01"
+            })
+
+        await request(app)
+            .delete(`/api/comments/${created.body._id}`)
+            .set('Authorization', `Bearer ${authTokenStudent}`)
+            .expect(403)
     })
 })

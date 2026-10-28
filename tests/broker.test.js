@@ -58,8 +58,10 @@ const resourceMock = [
 let testResource
 let testUserStudent
 let testUserAdmin
+let testUserEmpty
 let authTokenStudent
 let authTokenAdmin
+let authTokenEmpty
 
 
 beforeAll(async () => {
@@ -81,15 +83,28 @@ beforeAll(async () => {
     )
     await db.collection('users').insertMany(users)
 
+    await db.collection('users').insertOne({
+        "email" : "testempty@student.bth.se",
+        "password": "test123",
+        "role" : "student",
+        "created_at": "2026-09-08 17:00"
+    })
+
     testUserStudent = await db.collection('users').findOne({
         email: 'erik@student.bth.se',
     })
+    
     testUserAdmin = await db.collection('users').findOne({
         email: 'anna@student.bth.se',
     })
 
+    testUserEmpty = await db.collection('users').findOne({
+        email: 'testempty@student.bth.se',
+    })
+
     authTokenStudent = getAuthToken(testUserStudent)
     authTokenAdmin = getAuthToken(testUserAdmin)
+    authTokenEmpty = getAuthToken(testUserEmpty)
 
     const bookings = JSON.parse(
         readFileSync('./db/bookings.json', 'utf-8')
@@ -194,7 +209,66 @@ describe("Broker connection", () => {
 
 /// Booking tester
 
-describe("Booking", () => {
+describe("GET Booking", () => {
+    it('hämta alla bokningar med 200 som svar', async () => {
+        vi.spyOn(broker, 'allocate').mockResolvedValue({
+            allocation: {
+                id: 'test-allocation-id',
+                secret: 'test-secret'
+            }
+        })
+
+        const res = await request(app)
+            .get('/api/bookings')
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .expect(200)
+
+        expect(res.body).toBeInstanceOf(Array)
+        expect(res.body.length).toBeGreaterThan(1)
+    })
+
+    it('hämta alla bokningar från en resurs med 200 som svar', async () => {
+        vi.spyOn(broker, 'allocate').mockResolvedValue({
+            allocation: {
+                id: 'test-allocation-id',
+                secret: 'test-secret'
+            }
+        })
+
+        const resource = await db.collection('resources').findOne({
+            "name": "Proxmox"
+        })
+
+        const res = await request(app)
+            .get(`/api/bookings/resource/${resource._id}`)
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .expect(200)
+
+        expect(res.body).toBeInstanceOf(Array)
+        expect(res.body.length).toBeGreaterThan(0)
+    })
+
+    it('hämta en bokning med id med 200 som svar', async () => {
+        vi.spyOn(broker, 'allocate').mockResolvedValue({
+            allocation: {
+                id: 'test-allocation-id',
+                secret: 'test-secret'
+            }
+        })
+
+        const booking = await db.collection('bookings').findOne()
+
+        const res = await request(app)
+            .get(`/api/bookings/${booking._id}`)
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .expect(200)
+
+        expect(String(booking._id)).toEqual(String(res.body._id))
+    })
+})
+
+
+describe("POST Booking", () => {
     it('skapar en bokning på en ledig tid', async () => {
         vi.spyOn(broker, 'allocate').mockResolvedValue({
             allocation: {
@@ -205,10 +279,10 @@ describe("Booking", () => {
 
         const res = await request(app)
             .post('/api/bookings')
-            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .set('Authorization', `Bearer ${authTokenEmpty}`)
             .send({
                 "resource_id" : testResource._id,
-                "booked_by" : testUserAdmin._id,
+                "booked_by" : testUserEmpty._id,
                 "start_time": "2026-12-15 08:00",
                 "end_time": "2026-12-15 09:00",
             })
@@ -229,20 +303,20 @@ describe("Booking", () => {
 
         await request(app)
             .post('/api/bookings')
-            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .set('Authorization', `Bearer ${authTokenEmpty}`)
             .send({
                 "resource_id" : testResource._id,
-                "booked_by" : testUserAdmin._id,
+                "booked_by" : testUserEmpty._id,
                 "start_time": "2026-12-15 08:00",
                 "end_time": "2026-12-15 09:00",
             })
 
         const res = await request(app)
             .post('/api/bookings')
-            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .set('Authorization', `Bearer ${authTokenEmpty}`)
             .send({
                 "resource_id" : testResource._id,
-                "booked_by" : testUserAdmin._id,
+                "booked_by" : testUserEmpty._id,
                 "start_time": "2026-12-15 08:30",
                 "end_time": "2026-12-15 09:30",
             })
@@ -252,6 +326,108 @@ describe("Booking", () => {
     })
 })
 
+describe('PUT Bookings', () => {
+    it('ändra en bokning och få svar 200', async () => {
+        vi.spyOn(broker, 'allocate').mockResolvedValue({
+            allocation: {
+                id: 'test-allocation-id',
+                secret: 'test-secret'
+            }
+        })
+
+        vi.spyOn(broker, 'extend').mockResolvedValue(
+            undefined
+        )
+
+        const created = await request(app)
+            .post('/api/bookings')
+            .set('Authorization', `Bearer ${authTokenEmpty}`)
+            .send({
+                "resource_id" : testResource._id,
+                "booked_by" : testUserEmpty._id,
+                "start_time": "2026-12-06T08:00:00.000Z",
+                "end_time": "2026-12-06T09:00:00.000Z",
+            })
+            .expect(201)
+
+        const res = await request(app)
+            .put(`/api/bookings/${created.body.booking._id}`)
+            .set('Authorization', `Bearer ${authTokenEmpty}`)
+            .send({
+                "end_time": "2026-12-06T10:00:00.000Z",
+            })
+            expect(200)
+
+        expect(res.body.message).toBe('PUT ok');
+    })
+
+     it('ändra en bokning med och få svar 200', async () => {
+        vi.spyOn(broker, 'allocate').mockResolvedValue({
+            allocation: {
+                id: 'test-allocation-id',
+                secret: 'test-secret'
+            }
+        })
+
+        vi.spyOn(broker, 'extend').mockResolvedValue(
+            undefined
+        )
+
+        const created = await request(app)
+            .post('/api/bookings')
+            .set('Authorization', `Bearer ${authTokenEmpty}`)
+            .send({
+                "resource_id" : testResource._id,
+                "booked_by" : testUserEmpty._id,
+                "start_time": "2026-12-01T08:00:00.000Z",
+                "end_time": "2026-12-01T09:00:00.000Z",
+            })
+            .expect(201)
+
+        const res = await request(app)
+            .put(`/api/bookings/${created.body.booking._id}`)
+            .set('Authorization', `Bearer ${authTokenEmpty}`)
+            .send({
+                "end_time": "2026-12-01T13:00:00.000Z",
+            })
+            expect(409)
+    })
+})
+
+describe('DELETE Bookings', () => {
+    it('Avboka en bokning och få svar 200', async () => {
+        vi.spyOn(broker, 'allocate').mockResolvedValue({
+            allocation: {
+                id: 'test-allocation-id',
+                secret: 'test-secret'
+            }
+        })
+
+        vi.spyOn(broker, 'withdraw').mockResolvedValue(
+            undefined
+        )
+
+        const created = await request(app)
+            .post('/api/bookings')
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .send({
+                "resource_id" : testResource._id,
+                "booked_by" : testUserAdmin._id,
+                "start_time": "2026-12-06T15:00:00.000Z",
+                "end_time": "2026-12-06T16:00:00.000Z",
+            })
+            .expect(201)
+
+        const res = await request(app)
+            .delete(`/api/booking/cancel/${created.body.booking._id}`)
+            .set('Authorization', `Bearer ${authTokenAdmin}`)
+            .expect(200)
+
+        console.log(res.body)
+
+        expect(res.body.message).toBe('Booking cancelled');
+    })
+})
 
 
 /// JWT autentisering tester
