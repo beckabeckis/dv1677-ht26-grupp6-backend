@@ -63,6 +63,7 @@ jobs:
             echo "BROKER_API_URL=http://194.47.155.214:8500" >> .env
             echo "BROKER_GROUP_TOKEN=${{ secrets.BROKER_GROUP_TOKEN }}" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "JWT_EXPIRES_IN=24h >> .env
 
             # Alternativ A: imagen är publik på ghcr.io — ingen inloggning behövs
             # Gör imagen publik: GitHub -> Packages -> paketet -> Package settings -> Public
