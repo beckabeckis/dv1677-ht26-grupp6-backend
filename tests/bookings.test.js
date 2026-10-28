@@ -277,6 +277,8 @@ describe("POST Booking", () => {
             }
         })
 
+        const beforeCount = await db.collection('bookings').countDocuments()
+
         const res = await request(app)
             .post('/api/bookings')
             .set('Authorization', `Bearer ${authTokenEmpty}`)
@@ -288,7 +290,10 @@ describe("POST Booking", () => {
             })
             .expect(201)
 
+        const afterCount = await db.collection('bookings').countDocuments()
 
+
+        expect(beforeCount).not.toBe(afterCount)
         expect(res.body).toHaveProperty('booking')
         expect(res.body.booking).toHaveProperty('_id')
     })
@@ -301,16 +306,19 @@ describe("POST Booking", () => {
             }
         })
 
+        
         await request(app)
-            .post('/api/bookings')
-            .set('Authorization', `Bearer ${authTokenEmpty}`)
-            .send({
-                "resource_id" : testResource._id,
-                "booked_by" : testUserEmpty._id,
-                "start_time": "2026-12-15 08:00",
-                "end_time": "2026-12-15 09:00",
-            })
-
+        .post('/api/bookings')
+        .set('Authorization', `Bearer ${authTokenEmpty}`)
+        .send({
+            "resource_id" : testResource._id,
+            "booked_by" : testUserEmpty._id,
+            "start_time": "2026-12-15 08:00",
+            "end_time": "2026-12-15 09:00",
+        })
+        
+        const beforeCount = await db.collection('bookings').countDocuments()
+        
         const res = await request(app)
             .post('/api/bookings')
             .set('Authorization', `Bearer ${authTokenEmpty}`)
@@ -322,6 +330,10 @@ describe("POST Booking", () => {
             })
             .expect(409)
 
+        const afterCount = await db.collection('bookings').countDocuments()
+
+
+        expect(beforeCount).toBe(afterCount)
         expect(res.body.error).toMatch('Time slot already booked')
     })
 })
@@ -361,7 +373,7 @@ describe('PUT Bookings', () => {
         expect(res.body.message).toBe('PUT ok');
     })
 
-     it('ändra en bokning med och få svar 200', async () => {
+     it('ändra en bokning så att den blir för lång och svarar med 409', async () => {
         vi.spyOn(broker, 'allocate').mockResolvedValue({
             allocation: {
                 id: 'test-allocation-id',
@@ -417,13 +429,11 @@ describe('DELETE Bookings', () => {
                 "end_time": "2026-12-06T16:00:00.000Z",
             })
             .expect(201)
-
+        
         const res = await request(app)
             .delete(`/api/booking/cancel/${created.body.booking._id}`)
             .set('Authorization', `Bearer ${authTokenAdmin}`)
             .expect(200)
-
-        console.log(res.body)
 
         expect(res.body.message).toBe('Booking cancelled');
     })

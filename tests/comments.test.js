@@ -232,7 +232,7 @@ describe('GET /api/comments', () => {
             .expect(403)
     })
 
-    it('hämta alla commentarer från en användare, ej existernade user_id ska svara med 200 och inga kommentarer', async () => {
+    it('hämta alla kommentarer från en användare, ej existernade user_id ska svara med 200 och inga kommentarer', async () => {
         const res = await request(app)
             .get(`/api/comments/user/6ade805af473a2be3eb049c5`)
             .set('Authorization', `Bearer ${authTokenAdmin}`)

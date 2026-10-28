@@ -48,6 +48,16 @@ describe('GET /api/users', () => {
       expect(res.body.name).toBe(user.name)
       expect(String(res.body._id)).toBe(String(user._id))
     })
+
+    it('felaktigt user id svarar med 500', async () => {
+      const user = await db.collection('users').findOne({
+        email: 'erik@student.bth.se',
+      })
+
+      const res = await request(app)
+      .get(`/api/users/123456789`)
+      .expect(500)
+    })
 })
 
 describe('POST /api/users', () => {

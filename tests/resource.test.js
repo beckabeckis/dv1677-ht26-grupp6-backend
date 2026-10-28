@@ -72,8 +72,8 @@ describe('GET /api/resources', () => {
       })
 
       const res = await request(app)
-      .get(`/api/resources/${resource._id}`)
-      .expect(200)
+        .get(`/api/resources/${resource._id}`)
+        .expect(200)
 
       expect(res.body.name).toBe(resource.name)
       expect(String(res.body._id)).toBe(String(resource._id))
@@ -85,8 +85,8 @@ describe('GET /api/resources', () => {
       })
 
       const res = await request(app)
-      .get(`/api/resources/123456789`)
-      .expect(500)
+        .get(`/api/resources/123456789`)
+        .expect(500)
     })
 })
 
