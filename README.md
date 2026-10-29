@@ -120,7 +120,7 @@ GitHub secrets:
 
 ## Datamodell
 
-![image](public/datamodell_resourcebooking_v1.drawio.png)
+![image](public/datamodell_resourcebooking_v3.drawio.png)
 
 
 ## Krav 1 - JWT-autentisering
