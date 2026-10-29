@@ -306,7 +306,7 @@ bookingsRouter.put('/bookings/:id', requireAuth, async (req, res) => {
                     return res.status(409).json({ error: policyError })
                 }
 
-        const conflicts = await findConflicts(resource._id, previousBooking.end_time, end)
+        const conflicts = await findConflicts(resource._id, previousBooking.start_time, end, previousBooking._id)
         if (conflicts.length > 0) {
             return res.status(409).json({ error: 'Time slot already booked', conflicts })
         }
