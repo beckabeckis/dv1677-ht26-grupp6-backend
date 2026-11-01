@@ -124,3 +124,10 @@ Skrev tester till tre routes; GET, POST och DELETE resources.
 ![image](public/datamodell_resourcebooking_v1.drawio.png)
 
 
+- test/bookings.test.js
+- test/comments.test.js
+- test/domain.test.js
+- test/login.test.js
+- test/resource.test.js
+- test/users.test.js
+
