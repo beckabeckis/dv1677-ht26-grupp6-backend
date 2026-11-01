@@ -463,3 +463,4 @@ På grund av brist av tid så hann vi inte med att skriva några E2-tester i fro
 - test/login.test.js
 - test/resource.test.js
 - test/users.test.js
+
